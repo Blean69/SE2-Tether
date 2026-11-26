@@ -4,8 +4,9 @@
 using System;
 using System.IO;
 using Tether.Diagnostics;
-using Tether.Runtime.Diagnostics;
 using Tether.Protocol;
+using Tether.Runtime.Diagnostics;
+using Tether.Runtime.Modules;
 
 namespace Tether.Runtime.Bootstrap;
 
@@ -16,6 +17,7 @@ internal sealed class PluginRuntime : IDisposable
 
     private readonly PluginLog _log;
     private InGameNetworkTest? _networkTest;
+    private ITetherGameModule? _gameModule;
 
     private PluginRuntime(PluginLog log)
     {
@@ -62,7 +64,11 @@ internal sealed class PluginRuntime : IDisposable
             log.Error("Network self-test failed to start (is the port already in use?). The game is unaffected.", ex);
         }
 
-        log.Info("Tether bootstrap complete. Phase 0 build: diagnostics only, no gameplay changes.");
+        // In-game multiplayer features live in Tether.Game.dll, compiled against the real game. Started now,
+        // before the engine is built, so its patches are in place before any world loads.
+        runtime._gameModule = GameModuleLoader.TryStart(new GameModuleContext(log, options.Values, dataDirectory));
+
+        log.Info("Tether bootstrap complete.");
         return runtime;
     }
 
@@ -71,6 +77,16 @@ internal sealed class PluginRuntime : IDisposable
         _log.Info("Tether unloading.");
         _networkTest?.Dispose();
         _networkTest = null;
+        try
+        {
+            _gameModule?.Dispose();
+        }
+        catch (Exception ex)
+        {
+            _log.Warn("Game module failed while unloading.", ex);
+        }
+
+        _gameModule = null;
         _log.Dispose();
     }
 
@@ -99,6 +115,15 @@ internal sealed class PluginRuntime : IDisposable
     private void OnBeforeEngineInstantiated(LaunchOptions options, string dataDirectory)
     {
         _log.Info("Lifecycle: OnBeforeEngineInstantiated.");
+        try
+        {
+            _gameModule?.OnBeforeEngineInstantiated();
+        }
+        catch (Exception ex)
+        {
+            _log.Error("Game module failed in OnBeforeEngineInstantiated.", ex);
+        }
+
         if (options.DumpApiNamespaces is { } namespaces)
         {
             try

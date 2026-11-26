@@ -1,0 +1,50 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    In-game multiplayer features, compiled against the real Space Engineers 2 assemblies from your local
+    install (build/Game2.props). It is loaded by Tether.Runtime when present.
+
+    Because it needs the game's files to build, it is deliberately NOT part of Tether.sln (CI has no game).
+    Build it on a machine with the game:  dotnet build src/Tether.Game -c Release
+    tools/package.sh includes it automatically when the game is found.
+
+    Game assemblies are referenced in place and never copied or shipped (Private=false).
+  -->
+  <Import Project="..\..\build\Game2.props" />
+
+  <PropertyGroup>
+    <TargetFramework>$(TetherTargetFramework)</TargetFramework>
+    <AssemblyName>Tether.Game</AssemblyName>
+    <RootNamespace>Tether.Game</RootNamespace>
+    <PlatformTarget>x64</PlatformTarget>
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Lib.Harmony" Version="2.4.2" />
+    <ProjectReference Include="..\Tether.Runtime\Tether.Runtime.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <GameReference Include="VRage.Core;VRage.Core.Game;VRage.Library;VRage.DCS;VRage.Multiplayer;Game2.Game;Game2.Simulation" />
+    <Reference Include="@(GameReference)">
+      <HintPath>$(Game2Dir)/%(Identity).dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="TetherRequireGame" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="'$(Game2Dir)' == '' or !Exists('$(Game2Dir)/SpaceEngineers2.dll')"
+           Text="Tether.Game needs a local Space Engineers 2 install. Set Game2Dir (the folder containing SpaceEngineers2.exe) in Directory.Build.props.user." />
+    <Message Importance="high" Text="Tether.Game: compiling against the game assemblies in $(Game2Dir)" />
+  </Target>
+
+  <Target Name="TetherNoGameAssembliesInOutput" AfterTargets="Build;Publish">
+    <ItemGroup>
+      <_TetherForbidden Include="$(OutDir)VRage.*.dll;$(OutDir)Game2.*.dll;$(OutDir)SpaceEngineers2*.dll;$(PublishDir)VRage.*.dll;$(PublishDir)Game2.*.dll;$(PublishDir)SpaceEngineers2*.dll" />
+    </ItemGroup>
+    <Error Condition="'@(_TetherForbidden)' != ''" Text="Game assemblies must never be shipped with Tether: @(_TetherForbidden)" />
+  </Target>
+</Project>

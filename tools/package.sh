@@ -42,6 +42,17 @@ dotnet publish src/Tether.Plugin "${common[@]}" -p:TetherUseGameReferences=false
 echo "Building tether-nettest..."
 dotnet publish src/Tether.NetTest "${common[@]}" -p:UseAppHost=false -o "$stage/nettest" >/dev/null
 
+# The in-game multiplayer layer compiles against the real game, so it can only be built where the game is
+# installed. Without it the kit still works, but only with the diagnostics and network tests.
+game2="$(dotnet msbuild src/Tether.Game/Tether.Game.csproj -getProperty:Game2Dir 2>/dev/null || true)"
+if [[ -n "$game2" && -f "$game2/SpaceEngineers2.dll" ]]; then
+    echo "Building Tether.Game (against the game in $game2)..."
+    dotnet publish src/Tether.Game "${common[@]}" -o "$work/game" >/dev/null
+    cp "$work/game/Tether.Game.dll" "$work/game/0Harmony.dll" "$stage/plugin/"
+else
+    echo "warning: Space Engineers 2 not found; the kit will NOT include the in-game multiplayer layer (Tether.Game.dll)." >&2
+fi
+
 # Keep only what runs: no XML docs; the plugin's deps/runtimeconfig files are unused by the game.
 find "$stage" -name '*.xml' -delete
 rm -f "$stage"/plugin/*.deps.json "$stage"/plugin/*.runtimeconfig.json "$stage"/plugin/*.pdb "$stage"/nettest/*.pdb

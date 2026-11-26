@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net9.0": {
+      "Lib.Harmony": {
+        "type": "Direct",
+        "requested": "[2.4.2, )",
+        "resolved": "2.4.2",
+        "contentHash": "D2X9ojVjqbqdqWVK3VQETrEb56yVoXxtEp6tP5UvW0PP+bA4uJiswqOxF8GhH02ECwyevUa9vwhwdLzyXfksbw=="
+      },
+      "LiteNetLib": {
+        "type": "Transitive",
+        "resolved": "2.1.5",
+        "contentHash": "inIiisoxrbxLgTPeKDzkfdEVuQuITo/cCdZYrNs0iUNTlg1AnnTi2orYqHL5Dqz0yo5qeOX5zvywh0RIUi675g=="
+      },
+      "tether.core": {
+        "type": "Project",
+        "dependencies": {
+          "LiteNetLib": "[2.1.5, )"
+        }
+      },
+      "tether.runtime": {
+        "type": "Project",
+        "dependencies": {
+          "Tether.Core": "[0.1.0, )"
+        }
+      }
+    }
+  }
+}

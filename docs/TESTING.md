@@ -138,6 +138,28 @@ join. On machine B run `nettest join <A's address>`. Then chat, and use `/stats`
 tether-nettest needs the .NET runtime 9 or newer. On Windows, Space Engineers 2 already installed it. On
 Linux, install it from your distribution's packages or from https://dotnet.microsoft.com/download/dotnet.
 
+## 4b. Test D: join a friend's world through Steam (experimental)
+
+This build switches on Space Engineers 2's own built-in multiplayer, which is hidden in the normal game,
+and lets the host open their world to Steam friends. Nobody knows yet how far joining gets; finding out
+is the point of this test. Expect rough edges: the game's multiplayer is unfinished.
+
+**Host** (the person whose world you join):
+
+1. Launch options: `-plugins:"…\Tether.dll" -tether:debug -tether:visibility=friends`. On Proton the
+   plugin path is single-quoted, as above.
+2. Load a world. Steam now shows you as joinable. `tether.log` shows the join code.
+
+**Joiner:**
+
+1. Install the same Tether build. Launch options: `-plugins:"…\Tether.dll" -tether:debug`.
+2. Start the game and wait at the main menu.
+3. In Steam's friends list, right-click the host and choose **Join Game**, or accept the host's
+   **Invite to game**.
+
+**Both:** quit afterwards and send `tether.log`, plus the newest `SpaceEngineers2_*.log` from
+`%APPDATA%\SpaceEngineers2\Temp\Logs`. Note what you saw on screen: loading, errors, or the world.
+
 ## 5. Report back
 
 These help most:

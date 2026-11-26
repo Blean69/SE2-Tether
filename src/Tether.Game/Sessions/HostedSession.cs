@@ -4,8 +4,11 @@
 using System;
 using System.Reflection;
 using HarmonyLib;
+using Keen.VRage.Core.Services.Data;
 using Keen.VRage.Core.Services.GameSessions;
+using Keen.VRage.Core.Services.Networking;
 using Tether.Diagnostics;
+using Tether.Game.UI;
 
 namespace Tether.Game.Sessions;
 
@@ -32,6 +35,10 @@ internal static class HostedSession
         Log.Info($"Hosting: session ready. {DescribeCode(session)}");
         InstallGuards(session.GetType());
         Apply(Visibility);
+        Observe(session);
+        Toasts.Show(Visibility == HostVisibility.Hidden
+            ? "Multiplayer is ready. Your world is closed: press Ctrl+M to open it to friends."
+            : $"Your world is open ({Visibility}). Join code {session.JoinCode?.ToDisplayString() ?? "pending"}. Ctrl+M for options.");
     }
 
     /// <summary>Changes who can join the hosted world. Used by the in-game panel.</summary>
@@ -39,7 +46,41 @@ internal static class HostedSession
     {
         Visibility = visibility;
         Apply(visibility);
+        Toasts.Show(TetherSettings.Describe(visibility));
     }
+
+    /// <summary>Watches who knocks, so the host (and the logs) can see joins happen or fail.</summary>
+    private static void Observe(IGameSession session)
+    {
+        try
+        {
+            var communication = session.Communication;
+            if (communication is null)
+            {
+                return;
+            }
+
+            communication.ConnectionRequested += user =>
+            {
+                Log.Info($"Hosting: {Describe(user)} is connecting.");
+                Toasts.Show($"{Describe(user)} is joining your world.");
+            };
+            communication.PeerConnectionFailed += (user, reason) =>
+            {
+                Log.Info($"Hosting: connection with {Describe(user)} ended: {reason}.");
+                if (reason != ConnectionFailureReason.ClosedByLocalUser)
+                {
+                    Toasts.Show($"{Describe(user)} disconnected ({reason}).");
+                }
+            };
+        }
+        catch (Exception ex)
+        {
+            Log.Debug($"Hosting: can't observe connections: {ex.Message}");
+        }
+    }
+
+    private static string Describe(GameServiceUser user) => user.ToString() ?? "A player";
 
     private static void Apply(HostVisibility visibility)
     {

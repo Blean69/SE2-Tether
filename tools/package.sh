@@ -2,8 +2,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 # Copyright (C) 2026 Tether contributors.
 #
-# Builds the Tether test kit zip from this repository alone (no game install needed):
-#   plugin/    Tether.dll + Tether.Runtime.dll + Tether.Core.dll + LiteNetLib.dll
+# Builds the Tether test kit zip:
+#   plugin/    Tether.dll + Tether.Runtime.dll + Tether.Core.dll + LiteNetLib.dll, built from this repository alone;
+#              plus Tether.Game.dll + 0Harmony.dll (the in-game multiplayer layer) when the game is installed here
 #   nettest/   tether-nettest (framework-dependent; runs on the .NET 9+ runtime)
 #   install scripts, nettest launchers, licenses, README-TESTING.md, SHA256SUMS
 #
@@ -12,6 +13,7 @@
 #
 # Usage: tools/package.sh [OUTPUT_DIR]      (default: artifacts/)
 #        TETHER_VERSION=0.1.0-test1 tools/package.sh   names the zip after a release instead of the commit
+#        TETHER_REQUIRE_GAME=1 tools/package.sh        fails instead of leaving out the multiplayer layer
 
 set -euo pipefail
 
@@ -49,6 +51,9 @@ if [[ -n "$game2" && -f "$game2/SpaceEngineers2.dll" ]]; then
     echo "Building Tether.Game (against the game in $game2)..."
     dotnet publish src/Tether.Game "${common[@]}" -o "$work/game" >/dev/null
     cp "$work/game/Tether.Game.dll" "$work/game/0Harmony.dll" "$stage/plugin/"
+elif [[ "${TETHER_REQUIRE_GAME:-0}" == "1" ]]; then
+    echo "error: Space Engineers 2 not found, and TETHER_REQUIRE_GAME=1 needs the in-game multiplayer layer (Tether.Game.dll)." >&2
+    exit 1
 else
     echo "warning: Space Engineers 2 not found; the kit will NOT include the in-game multiplayer layer (Tether.Game.dll)." >&2
 fi

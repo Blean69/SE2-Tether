@@ -1,60 +1,100 @@
-# Tether test kit (Phase 0)
+# Tether test kit
 
-Tether is an unofficial, open-source co-op multiplayer plugin for Space Engineers 2. This kit is the
-**first testable build**. It doesn't add multiplayer to the game yet. It checks the three things
-everything else depends on:
+Tether is an unofficial, open-source co-op multiplayer plugin for Space Engineers 2. The game already
+contains multiplayer that Keen has built but hidden. This kit switches it on and adds the controls to use
+it: open your world to friends, see your join code, and join a friend's world through Steam.
 
-1. **The plugin loads** in the real game: on Windows, under Proton, and on native Linux.
-2. **Tether's networking works inside the game process**, which proves the in-game network self-test
-   can reach another machine.
-3. **Two machines can reach each other** with Tether's network stack (`tether-nettest`, no game needed).
+**This is an early test build.** Hosting works. This test finds out whether joining gets all the way
+into the world. Expect rough edges, because the game's own multiplayer is unfinished.
 
-It changes nothing in your game or saves. To remove it, delete the launch option and the install folder.
+- Tether sends no telemetry and writes only to its own folders.
+- Use a new world, or back up the one you test with.
+- To remove Tether, see [Uninstall](#uninstall).
+
+Both players need Space Engineers 2 on the same game version, and the same Tether kit.
 
 ## Quick start (Windows)
 
 1. **Unzip** this folder anywhere, for example your Desktop.
 2. **Quit Space Engineers 2** if it's running, then double-click **`Install Tether.cmd`**.
    - Windows may warn that the file came from the internet. Choose "More info" > "Run anyway".
-   - The installer is a short, readable script (`install.ps1`). It copies four DLLs to
+   - The installer is a short, readable script (`install.ps1`). It copies Tether's DLLs to
      `%LOCALAPPDATA%\Tether` and changes nothing else.
 3. In Steam, right-click Space Engineers 2 > Properties > General > **Launch Options**, and press
    **Ctrl+V**. The installer already copied the right text to your clipboard.
-4. **Start the game** and load a world. Nothing in the game looks different; that's expected.
-5. **Quit**, then send the tester who gave you this kit the file `%APPDATA%\SpaceEngineers2\Tether\tether.log`.
-   Type that path into Explorer's address bar to find it. It contains your Windows user name in a few
-   paths, so look it over first.
+4. **Start the game.** The main menu now has a **Multiplayer** button.
 
-To remove Tether, double-click **`Uninstall Tether.cmd`** and clear the launch options in Steam.
+### Host a world
 
-Want to try a network test with the person who sent you this? See Test B below.
+1. Load a world. After a few seconds a notification says multiplayer is ready. Your world starts
+   **closed**.
+2. Press **Ctrl+M**, or Esc > **Multiplayer**, to open the Multiplayer panel. Choose who can join:
+
+   | Setting | Who can join |
+   |---|---|
+   | **Hidden** | Nobody. This is the default. |
+   | **Private** | Only people you invite through Steam. |
+   | **Friends** | Your Steam friends, from their friends list. |
+   | **Public** | Anyone with your join code. |
+
+3. Invite people: in Steam's friends list, right-click a friend > **Invite to game**. Or give them the
+   **join code** the panel shows (Copy code puts it on your clipboard). The code only works when the world
+   is set to Public.
+
+### Join a friend's world
+
+1. Start the game and wait at the main menu.
+2. Do one of these:
+   - In Steam's friends list, right-click the host > **Join Game**, or accept their invite.
+   - Click **Multiplayer** in the main menu, type the host's join code, and click **Connect**. The host's
+     world must be set to Public.
+
+### After testing, report back
+
+Quit the game, then send whoever gave you this kit:
+
+- **`%APPDATA%\SpaceEngineers2\Tether\tether.log`.** Type that path into Explorer's address bar to find it.
+- **The newest `SpaceEngineers2_*.log`** from `%APPDATA%\SpaceEngineers2\Temp\Logs`.
+- **What you saw on screen:** loading, errors, or the world, and anything that looked wrong.
+
+Both logs contain your Windows user name in some file paths, so look them over first.
 
 ## What's in the zip
 
 | Path | What |
 |---|---|
-| `plugin/` | Tether.dll (entry point), Tether.Runtime.dll, Tether.Core.dll, LiteNetLib.dll |
+| `plugin/` | `Tether.dll` (entry point), `Tether.Runtime.dll`, `Tether.Core.dll`, `LiteNetLib.dll`, plus the multiplayer module: `Tether.Game.dll` and `0Harmony.dll` (the open-source Harmony patching library) |
 | `nettest/`, `nettest.cmd`, `nettest.sh` | tether-nettest, a command-line network tester |
 | `Install Tether.cmd`, `Uninstall Tether.cmd` | Double-click helpers for Windows. They run `install.ps1`. |
 | `install.ps1`, `install.sh` | Installers for Windows and Linux/Proton. They copy files and show the launch option. |
 | `SHA256SUMS` | Checksums of every file |
 | `LICENSE`, `LICENSE-EXCEPTION.md` | GPL-3.0-or-later, plus the game-linking exception |
 
-## 0. Verify the download (optional, recommended)
+## Verify the download (optional)
 
-This zip is built by GitHub Actions from the public source. To check it:
+`SHA256SUMS` lists the checksum of every file. On Linux, run `sha256sum -c SHA256SUMS`.
 
-```sh
-sha256sum -c SHA256SUMS                                   # Linux
-gh attestation verify tether-*.zip --repo Blean69/SE2-Tether  # proves which workflow and commit built it
-```
+Every file is built from the public source by `tools/package.sh`. Most of the kit needs only the
+repository to build, and CI rebuilds it to identical bytes. The multiplayer module (`Tether.Game.dll`)
+is compiled against the game's own DLLs, which can't be redistributed. Kits that include it are built on
+a machine with the game installed. Building the same commit against the same game version should give
+identical bytes.
 
-Attestations are produced once the repository is public.
+## Settings
 
-You can also rebuild it yourself: run `tools/package.sh` at the same commit. The DLLs and the zip should
-come out byte-identical.
+Add these to the launch options after the `-plugins:` option:
 
-## 1. Install the plugin
+| Option | Effect |
+|---|---|
+| `-tether:debug` | Detailed log. The installer adds it for test builds. |
+| `-tether:visibility=friends` | Open new worlds to friends straight away. Also `hidden`, `private`, `public`. |
+| `-tether:mp=off` | Leave the game's multiplayer switched off. Tether then only runs its self-tests. |
+
+## Other tests
+
+These check the foundations without multiplayer, and help narrow down problems.
+
+### 1. Install by hand
 
 **Windows**, in PowerShell, from the unzipped folder:
 
@@ -71,14 +111,14 @@ powershell -ExecutionPolicy Bypass -File .\install.ps1
 Each installer prints the launch option to paste into Steam (Space Engineers 2 > Properties > General >
 Launch Options):
 
-- **Windows:** `-plugins:"C:\Users\<you>\AppData\Local\Tether\Tether.dll"`
-- **Proton:** `'-plugins:C:\Tether\Tether.dll'`, including the single quotes. Steam on Linux passes launch
-  options through a shell, which drops unquoted backslashes. The game would then report an incorrect
-  plugin path.
+- **Windows:** `-plugins:"C:\Users\<you>\AppData\Local\Tether\Tether.dll" -tether:debug`
+- **Proton:** `'-plugins:C:\Tether\Tether.dll' -tether:debug`, including the single quotes. Steam on
+  Linux passes launch options through a shell, which drops unquoted backslashes. The game would then
+  report an incorrect plugin path.
 
-## 2. Test A: the plugin loads
+### 2. Test A: the plugin loads
 
-Add `-tether:debug` after the `-plugins:` option, start the game, load a world, then quit. Open Tether's log:
+Start the game with the launch option above, load a world, then quit. Open Tether's log:
 
 - **Windows:** `%APPDATA%\SpaceEngineers2\Tether\tether.log`
 - **Proton:** `<steam library>/steamapps/compatdata/1133870/pfx/drive_c/users/steamuser/AppData/Roaming/SpaceEngineers2/Tether/tether.log`
@@ -87,19 +127,20 @@ Add `-tether:debug` after the `-plugins:` option, start the game, load a world, 
 **Success** looks like this:
 
 - a line saying `Tether bootstrap complete`;
-- `Tether assemblies:` listing all four DLLs from your install folder;
+- `Tether assemblies:` listing the DLLs from your install folder;
+- `Multiplayer: on.` and the number of patch groups installed;
 - `Lifecycle: OnBeforeProjectsLoaded` and `Lifecycle: OnBeforeEngineInstantiated`.
 
 **If there's no `tether.log` at all**, the game didn't load the plugin:
 
 1. Check the launch option.
 2. Look for `tether-startup-error.log` in the same folder.
-3. Look in the game's own log (`%APPDATA%\SpaceEngineers2\Temp\Logs` or similar) for "plugin" errors.
+3. Look in the game's own log (`%APPDATA%\SpaceEngineers2\Temp\Logs`) for "plugin" errors.
 
-## 3. Test B: in-game network self-test
+### 3. Test B: in-game network self-test
 
-This proves Tether can host a session from inside the running game. You need a second machine, or the
-same machine, with `tether-nettest`.
+This proves Tether's own networking can host from inside the running game. You need a second machine,
+or the same machine, with `tether-nettest`.
 
 1. Add `-tether:host-test` to the game's launch options. Optionally also add `-tether:name=YourName` and
    `-tether:password=secret`.
@@ -125,52 +166,23 @@ same machine, with `tether-nettest`.
 **Reverse direction:** run `nettest host` on the other machine and start the game with
 `-tether:join-test=<that machine's IP>`.
 
-## 4. Test C: two machines, no game
+### 4. Test C: two machines, no game
 
 On machine A run `nettest.cmd host` (Windows) or `./nettest.sh host` (Linux). It prints addresses to
 join. On machine B run `nettest join <A's address>`. Then chat, and use `/stats` and `/players`.
 
 - **Same LAN:** this should just work.
 - **Over the internet:** the host must forward UDP port 27027 on their router (or pick another with
-  `--port`). The finished Tether will use Steam's relay for friends, so port forwarding is only needed
-  for this test and for direct-IP play.
+  `--port`). Multiplayer through Steam doesn't need this; it's only for this test.
 
 tether-nettest needs the .NET runtime 9 or newer. On Windows, Space Engineers 2 already installed it. On
 Linux, install it from your distribution's packages or from https://dotnet.microsoft.com/download/dotnet.
 
-## 4b. Test D: join a friend's world through Steam (experimental)
-
-This build switches on Space Engineers 2's own built-in multiplayer, which is hidden in the normal game,
-and lets the host open their world to Steam friends. Nobody knows yet how far joining gets; finding out
-is the point of this test. Expect rough edges: the game's multiplayer is unfinished.
-
-**Host** (the person whose world you join):
-
-1. Launch options: `-plugins:"…\Tether.dll" -tether:debug -tether:visibility=friends`. On Proton the
-   plugin path is single-quoted, as above.
-2. Load a world. Steam now shows you as joinable. `tether.log` shows the join code.
-
-**Joiner:**
-
-1. Install the same Tether build. Launch options: `-plugins:"…\Tether.dll" -tether:debug`.
-2. Start the game and wait at the main menu.
-3. In Steam's friends list, right-click the host and choose **Join Game**, or accept the host's
-   **Invite to game**.
-
-**Both:** quit afterwards and send `tether.log`, plus the newest `SpaceEngineers2_*.log` from
-`%APPDATA%\SpaceEngineers2\Temp\Logs`. Note what you saw on screen: loading, errors, or the world.
-
-## 5. Report back
-
-These help most:
-
-- **`tether.log`** from Test A and Test B. It contains local paths, such as your username, so review it
-  before sharing.
-- **The tether-nettest output** from Tests B and C, especially the `Link:` lines.
-- **Your setup:** Windows, Proton (and which version), or native Linux.
+When reporting on these tests, include the tether-nettest output (especially the `Link:` lines) and your
+setup: Windows, Proton (and which version), or native Linux.
 
 ## Uninstall
 
 1. Remove the `-plugins:` and `-tether:` launch options in Steam.
-2. Run the installer again with `-Uninstall` (Windows) or `--uninstall` (Linux), or just delete the
-   install folder.
+2. Double-click **`Uninstall Tether.cmd`** (Windows), or run `./install.sh --uninstall` (Linux), or just
+   delete the install folder.

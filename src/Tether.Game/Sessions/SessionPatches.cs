@@ -4,9 +4,14 @@
 using System;
 using System.Reflection;
 using HarmonyLib;
+using Keen.Game2.Client.RuntimeSystems;
+using Keen.Game2.Client.UI.Menu.InGameMenu;
 using Keen.Game2.Game.RuntimeSystems.GameSessions;
+using Keen.VRage.Core.Game.Systems;
 using Keen.VRage.Core.Services.GameSessions;
 using Tether.Diagnostics;
+using Tether.Game.UI;
+using KeenSession = Keen.VRage.Core.Game.Systems.Session;
 using KTask = Keen.VRage.Library.Threading.Task;
 
 namespace Tether.Game.Sessions;
@@ -31,6 +36,14 @@ internal static class SessionPatches
             Prefix(harmony, typeof(GameSessionsCoreComponent), "OnJoinSessionRequested", nameof(JoinRequestedPrefix));
             Postfix(harmony, typeof(GameSessionsCoreComponent), "Init", nameof(CoreInitPostfix));
         });
+
+        // UI. Each piece is optional: losing one (e.g. after a game update) leaves the others working.
+        installed += Try(log, "in-world hotkey and toasts", () =>
+            harmony.Patch(AccessTools.DeclaredMethod(typeof(KeenSession), nameof(KeenSession.Update), new[] { typeof(bool) }) ?? throw new MissingMethodException("Session.Update(bool)"),
+                postfix: new HarmonyMethod(typeof(InWorldHotkey), nameof(InWorldHotkey.SessionUpdatePostfix))));
+        // The main menu needs no patch: with multiplayer on, the game shows its own Multiplayer (join-by-code) button.
+        installed += Try(log, "pause menu button", () =>
+            harmony.Patch(Target(typeof(InGameMenuScreen), "InitializeComponent"), postfix: new HarmonyMethod(typeof(MenuButtons), nameof(MenuButtons.PauseMenuScreenPostfix))));
         return installed;
     }
 
@@ -74,9 +87,15 @@ internal static class SessionPatches
         try
         {
             var session = await task;
-            Log.Info(session is null
-                ? "Joining: no session was joined."
-                : $"Joining: connected to {session.Server} (Steam lobby: {session.IsLobby}, dedicated: {session.IsDedicated}).");
+            if (session is null)
+            {
+                Log.Info("Joining: no session was joined.");
+                return;
+            }
+
+            Log.Info($"Joining: connected to {session.Server} (Steam lobby: {session.IsLobby}, dedicated: {session.IsDedicated}).");
+            SessionState.ClientDescription = $"You are connected to another player's world ({session.Server}).";
+            Toasts.Show("Connected to the host's world.");
         }
         catch (Exception ex)
         {

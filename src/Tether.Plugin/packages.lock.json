@@ -12,6 +12,15 @@
         "dependencies": {
           "LiteNetLib": "[2.1.5, )"
         }
+      },
+      "tether.runtime": {
+        "type": "Project",
+        "dependencies": {
+          "Tether.Core": "[0.1.0, )"
+        }
+      },
+      "VRage.Core": {
+        "type": "Project"
       }
     }
   }

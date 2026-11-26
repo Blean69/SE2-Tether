@@ -2,9 +2,9 @@
 // Copyright (C) 2026 Tether contributors. Game-linking exception: see LICENSE-EXCEPTION.md.
 
 using System;
+using System.IO;
 using System.Runtime.CompilerServices;
 using Keen.VRage.Core.Plugins;
-using Tether.Plugin.Bootstrap;
 
 namespace Tether.Plugin;
 
@@ -14,13 +14,11 @@ namespace Tether.Plugin;
 /// </summary>
 /// <remarks>
 /// <para>
-/// This is the Phase 0 bootstrap. It proves the plugin loads on Windows, Proton and native Linux,
-/// records the environment, and can dump the game's networking API surface to help map Keen's transport.
-/// It does not change gameplay yet.
+/// This assembly is a deliberately tiny loader shim. Besides the game's IPlugin and PluginHost it uses only
+/// the base library, so the game can inspect or enumerate its types without needing any of Tether's
+/// dependencies. It installs a resolver for Tether's own DLLs, then hands over to Tether.Runtime.
 /// </para>
-/// <para>
-/// Rule: nothing thrown here may crash the game. Every failure is logged and Tether disables itself.
-/// </para>
+/// <para>Rule: nothing thrown here may crash the game. Every failure is logged and Tether disables itself.</para>
 /// </remarks>
 public sealed class TetherPlugin : IPlugin, IDisposable
 {
@@ -29,19 +27,18 @@ public sealed class TetherPlugin : IPlugin, IDisposable
     private static Func<string, string?, string>? GetConfigPath;
 #pragma warning restore CS0649, IDE0044
 
-    private PluginRuntime? _runtime;
+    private IDisposable? _runtime;
 
     public TetherPlugin(PluginHost host)
     {
         try
         {
-            // Must run before any method that touches Tether.Core or other dependencies is JIT-compiled.
             DependencyResolver.Install(typeof(TetherPlugin).Assembly);
-            Start(host);
+            _runtime = Start(host);
         }
         catch (Exception ex)
         {
-            EmergencyLog.Write("Tether failed to start and has disabled itself.", ex);
+            LogStartupFailure("Tether failed to start and has disabled itself.", ex);
         }
     }
 
@@ -53,12 +50,31 @@ public sealed class TetherPlugin : IPlugin, IDisposable
         }
         catch (Exception ex)
         {
-            EmergencyLog.Write("Tether failed while unloading.", ex);
+            LogStartupFailure("Tether failed while unloading.", ex);
         }
 
         _runtime = null;
     }
 
+    // Kept out of the constructor so Tether.Runtime is only resolved after the resolver is installed.
     [MethodImpl(MethodImplOptions.NoInlining)]
-    private void Start(PluginHost host) => _runtime = PluginRuntime.Create(host, GetConfigPath);
+    private static IDisposable? Start(PluginHost host) => Tether.Runtime.PluginEntry.Start(host, GetConfigPath);
+
+    /// <summary>Last-resort log, using only the base library. Same folder as Tether's normal log.</summary>
+    private static void LogStartupFailure(string message, Exception exception)
+    {
+        try
+        {
+            var appData = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData, Environment.SpecialFolderOption.Create);
+            var directory = Path.Combine(string.IsNullOrEmpty(appData) ? Path.GetTempPath() : appData, "SpaceEngineers2", "Tether");
+            Directory.CreateDirectory(directory);
+            File.AppendAllText(
+                Path.Combine(directory, "tether-startup-error.log"),
+                $"{DateTime.UtcNow:O} {message}{Environment.NewLine}{exception}{Environment.NewLine}{Environment.NewLine}");
+        }
+        catch
+        {
+            // Nothing else we can do without risking the game.
+        }
+    }
 }

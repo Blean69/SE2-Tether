@@ -17,7 +17,7 @@
 #>
 [CmdletBinding()]
 param(
-    # Folder containing Tether.dll. Default: the repo build output, else this script's folder.
+    # Folder containing Tether.dll. Default: the plugin folder next to this script (test kit), else the repo build output.
     [string]$From,
 
     # Where to install. Avoid folders that need administrator rights.
@@ -41,13 +41,12 @@ if ($Uninstall) {
 }
 
 if (-not $From) {
-    $repoOutput = [IO.Path]::Combine($PSScriptRoot, '..', 'src', 'Tether.Plugin', 'bin', 'Release', 'net9.0')
-    if (Test-Path -LiteralPath ([IO.Path]::Combine($repoOutput, 'Tether.dll'))) {
-        $From = $repoOutput
-    }
-    else {
-        $From = $PSScriptRoot
-    }
+    $candidates = @(
+        [IO.Path]::Combine($PSScriptRoot, 'plugin'),
+        [IO.Path]::Combine($PSScriptRoot, '..', 'src', 'Tether.Plugin', 'bin', 'Release', 'net9.0'),
+        $PSScriptRoot)
+    $From = $candidates | Where-Object { Test-Path -LiteralPath ([IO.Path]::Combine($_, 'Tether.dll')) } | Select-Object -First 1
+    if (-not $From) { $From = $PSScriptRoot }
 }
 
 if (-not (Test-Path -LiteralPath ([IO.Path]::Combine($From, 'Tether.dll')))) {
@@ -57,7 +56,7 @@ if (-not (Test-Path -LiteralPath ([IO.Path]::Combine($From, 'Tether.dll')))) {
 New-Item -ItemType Directory -Force -Path $Destination | Out-Null
 Get-ChildItem -LiteralPath $From -Filter '*.dll' | Copy-Item -Destination $Destination -Force
 foreach ($notice in 'LICENSE', 'LICENSE-EXCEPTION.md') {
-    foreach ($dir in $From, ([IO.Path]::Combine($PSScriptRoot, '..'))) {
+    foreach ($dir in $From, $PSScriptRoot, ([IO.Path]::Combine($PSScriptRoot, '..'))) {
         $candidate = [IO.Path]::Combine($dir, $notice)
         if (Test-Path -LiteralPath $candidate) {
             Copy-Item -LiteralPath $candidate -Destination $Destination -Force

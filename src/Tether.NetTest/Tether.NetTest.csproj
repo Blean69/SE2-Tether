@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    tether-nettest: a small command-line tool to test Tether's networking between machines, with or
+    without the game. Host on one PC, join from another, chat, and see round-trip time and packet loss.
+    It can also join (or host for) the plugin's in-game network self-test.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(TetherTargetFramework)</TargetFramework>
+    <AssemblyName>tether-nettest</AssemblyName>
+    <RootNamespace>Tether.NetTest</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <!-- Run on .NET 9 (which the game already needs on Windows) or any newer runtime. -->
+    <RollForward>Major</RollForward>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tether.Core\Tether.Core.csproj" />
+  </ItemGroup>
+</Project>

@@ -3,8 +3,10 @@
 **Tether** is an unofficial, fully open-source co-op multiplayer plugin for **Space Engineers 2**. It
 runs on Windows and Linux.
 
-**Status: early development.** The protocol, transport and session layers are written and tested.
-Game integration starts with Phase 0 in the plan. You can't play with it yet.
+**Status: first test kit (Phase 0).** You can't play multiplayer with it yet. The protocol, transport
+and session layers are written and tested. The plugin loads into the game, reports what we need to
+know, and can host or join a network test session from inside the game. Each CI run produces a
+`tether-test-kit` zip; see [`docs/TESTING.md`](docs/TESTING.md).
 
 - Design plan: [`docs/PLAN.md`](docs/PLAN.md)
 - Research notes: [`docs/research/2026-11-landscape.md`](docs/research/2026-11-landscape.md)
@@ -38,27 +40,31 @@ You need the .NET 10 SDK. The plugin targets `net9.0`, the runtime the game uses
 need the .NET 9 runtime.
 
 ```sh
-dotnet test tests/Tether.Core.Tests     # game-independent core and tests; no game needed
-dotnet build src/Tether.Plugin           # plugin; needs a local Space Engineers 2 install
+dotnet test tests/Tether.Core.Tests     # core tests; no game needed
+tools/package.sh                        # the test kit zip; no game needed, byte-identical to CI's
 ```
 
-The plugin build looks for the game automatically:
+The plugin builds without the game, using Tether's interop declarations. If a game install is found,
+the plugin compiles against it instead, which gives stronger compile-time checks:
 
-- **Windows:** through Steam's registry entry.
-- **Linux:** in `~/.steam/steam/steamapps/common/SpaceEngineers2/Game2`.
+- **Windows:** found through Steam's registry entry.
+- **Linux:** found in `~/.steam/steam/steamapps/common/SpaceEngineers2/Game2`.
 
-To point it somewhere else, copy `Directory.Build.props.user.example` to `Directory.Build.props.user`
-and set `Game2Dir`.
+To point the build somewhere else, copy `Directory.Build.props.user.example` to
+`Directory.Build.props.user` and set `Game2Dir`.
 
 ## Repository layout
 
 | Path | What it is |
 |---|---|
-| `src/Tether.Core` | Game-independent code: protocol, transports (loopback and LiteNetLib), host/client sessions |
-| `src/Tether.Plugin` | The SE2 plugin: entry point, game adapter, and Steam transport (later) |
-| `tests/Tether.Core.Tests` | Unit, fuzz and integration tests for the core |
-| `tools/` | Install scripts |
-| `docs/` | Plan and research notes |
+| `src/Tether.Core` | Game-independent code: protocol, transports (loopback and LiteNetLib), host/client sessions, network-test node |
+| `src/Tether.Plugin` | `Tether.dll`, the tiny entry point the game loads (no dependencies besides the game's `IPlugin`) |
+| `src/Tether.Runtime` | Everything Tether does in the game process: diagnostics, network self-test, and later the game adapter |
+| `src/Tether.NetTest` | `tether-nettest`, a command-line network tester (no game needed) |
+| `ref/VRage.Core.Interop` | Hand-written declarations of the two game types Tether compiles against. Not Keen code; never shipped. |
+| `tests/` | Unit, fuzz and integration tests; a stand-in game process for end-to-end tests |
+| `tools/` | Install, package (`package.sh`) and end-to-end test scripts |
+| `docs/` | Plan, research notes, Phase 0 runbook, testing guide |
 
 ## Legal
 

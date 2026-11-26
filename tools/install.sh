@@ -23,8 +23,8 @@ usage() {
     cat <<'EOF'
 Usage: tools/install.sh [--from DIR] [--steam DIR] [--uninstall]
 
-  --from DIR    Folder containing Tether.dll. Default: the repo build output
-                (src/Tether.Plugin/bin/Release/net9.0), else this script's folder.
+  --from DIR    Folder containing Tether.dll. Default: the plugin/ folder next to this script (test kit),
+                else the repo build output (src/Tether.Plugin/bin/Release/net9.0).
   --steam DIR   Steam root folder. Default: auto-detect (~/.steam/steam, ~/.local/share/Steam, Flatpak).
   --uninstall   Remove Tether from the Proton prefix.
 EOF
@@ -93,18 +93,20 @@ if [[ "$UNINSTALL" -eq 1 ]]; then
 fi
 
 if [[ -z "$FROM" ]]; then
-    if [[ -f "$script_dir/../src/Tether.Plugin/bin/Release/net9.0/Tether.dll" ]]; then
-        FROM="$script_dir/../src/Tether.Plugin/bin/Release/net9.0"
-    else
-        FROM="$script_dir"
-    fi
+    for candidate in "$script_dir/plugin" "$script_dir/../src/Tether.Plugin/bin/Release/net9.0" "$script_dir"; do
+        if [[ -f "$candidate/Tether.dll" ]]; then
+            FROM="$candidate"
+            break
+        fi
+    done
 fi
+FROM="${FROM:-$script_dir}"
 [[ -f "$FROM/Tether.dll" ]] || die "Tether.dll not found in $FROM. Build it first: dotnet build src/Tether.Plugin -c Release"
 
 mkdir -p -- "$dest"
 cp -f -- "$FROM"/*.dll "$dest/"
 for notice in LICENSE LICENSE-EXCEPTION.md; do
-    for dir in "$FROM" "$script_dir/.."; do
+    for dir in "$FROM" "$script_dir" "$script_dir/.."; do
         if [[ -f "$dir/$notice" ]]; then
             cp -f -- "$dir/$notice" "$dest/"
             break

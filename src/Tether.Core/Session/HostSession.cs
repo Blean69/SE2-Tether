@@ -153,6 +153,9 @@ public sealed class HostSession : IDisposable
         }
     }
 
+    /// <summary>Smoothed round-trip time to a joined client in milliseconds, or -1 if unknown.</summary>
+    public int GetRoundTripTimeMs(PlayerId player) => FindJoined(player)?.Connection.RoundTripTimeMs ?? -1;
+
     /// <summary>Sends an engine payload to one joined client.</summary>
     public SendResult SendEngineData(PlayerId to, byte channel, ReadOnlySpan<byte> payload)
     {

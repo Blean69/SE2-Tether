@@ -7,7 +7,7 @@ using System.Reflection;
 using System.Text;
 using Tether.Diagnostics;
 
-namespace Tether.Plugin.Diagnostics;
+namespace Tether.Runtime.Diagnostics;
 
 /// <summary>
 /// Writes to Tether's own log file (tether.log in the data folder; the previous run is kept as

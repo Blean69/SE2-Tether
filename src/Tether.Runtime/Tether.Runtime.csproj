@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Everything Tether does inside the game process. It is loaded by the tiny entry assembly (Tether.dll,
+    in src/Tether.Plugin) only after that has installed its dependency resolver.
+
+    Deliberately has no reference to any game assembly: the PluginHost it receives is handled as an object
+    through reflection, so this assembly survives game API changes and builds anywhere.
+  -->
+  <PropertyGroup>
+    <TargetFramework>$(TetherTargetFramework)</TargetFramework>
+    <AssemblyName>Tether.Runtime</AssemblyName>
+    <RootNamespace>Tether.Runtime</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tether.Core\Tether.Core.csproj" />
+  </ItemGroup>
+</Project>

@@ -23,13 +23,21 @@ keep it that way.
    - Add fuzz-test seeds for every new message.
 6. **Keep the core game-free.** `src/Tether.Core` must never reference game assemblies, so it can build
    and test on any machine and in CI.
+7. **Keep the entry shim tiny.** `src/Tether.Plugin` (Tether.dll) may use only the base library and the
+   game's `IPlugin` and `PluginHost`. Everything else goes in `src/Tether.Runtime`. If the game enumerates
+   Tether.dll's types before our dependency resolver is installed, any other dependency would break
+   loading (the smoke host tests exactly this).
+8. **Keep `ref/VRage.Core.Interop` minimal.** It holds our own declarations of game type names, and only
+   the ones we compile against. Never generate it from game files.
 
 ## Building
 
 - **SDK:** the .NET 10 SDK (pinned in `global.json`). The tests need the .NET 9 runtime.
 - **Core and tests:** `dotnet test tests/Tether.Core.Tests`. No game is needed.
-- **Plugin:** `dotnet build src/Tether.Plugin -c Release`. It needs a local Space Engineers 2 install;
-  see `Directory.Build.props.user.example`.
+- **Plugin:** `dotnet build src/Tether.Plugin -c Release`. It builds anywhere, using the interop
+  declarations. With a local game install it compiles against the real game assemblies instead; see
+  `Directory.Build.props.user.example`.
+- **Test kit:** `tools/package.sh`. The end-to-end test is `tools/e2e-test.sh <unpacked kit> <smoke host dll>`.
 
 ## Protocol changes
 

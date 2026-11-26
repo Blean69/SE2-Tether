@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Test-only stand-in for the game's plugin loading. It loads a built Tether.dll by path, constructs the
+    plugin the way the game does, keeps it running for a while, then unloads it. CI uses it to test
+    the packaged plugin, including the in-game network self-test, without the game.
+    It is never shipped.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>$(TetherTargetFramework)</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <RollForward>Major</RollForward>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Plays the part of the game's VRage.Core, which is already loaded when plugins load. -->
+    <ProjectReference Include="..\..\ref\VRage.Core.Interop\VRage.Core.Interop.csproj" />
+  </ItemGroup>
+</Project>

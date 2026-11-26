@@ -8,7 +8,7 @@ using System.Linq.Expressions;
 using System.Reflection;
 using Tether.Diagnostics;
 
-namespace Tether.Plugin.Bootstrap;
+namespace Tether.Runtime.Bootstrap;
 
 /// <summary>
 /// Subscribes to <c>PluginHost</c> lifecycle events by name, through reflection.

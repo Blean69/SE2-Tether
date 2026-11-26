@@ -9,7 +9,7 @@ using System.Reflection;
 using System.Runtime.InteropServices;
 using Tether.Diagnostics;
 
-namespace Tether.Plugin.Diagnostics;
+namespace Tether.Runtime.Diagnostics;
 
 /// <summary>
 /// Logs the facts Phase 0 needs: game build, runtime, platform (Windows, Proton/Wine, or native Linux),
@@ -21,8 +21,12 @@ internal static class EnvironmentReport
     {
         Safe(log, "plugin", () =>
         {
-            var location = pluginAssembly.Location;
-            log.Info($"Plugin assembly: {(string.IsNullOrEmpty(location) ? "in memory (compiled by Pulsar)" : location)}");
+            // Where each of Tether's assemblies was loaded from shows whether dependency resolution worked.
+            var ours = AppDomain.CurrentDomain.GetAssemblies()
+                .Where(a => a.GetName().Name is "Tether" or "Tether.Runtime" or "Tether.Core" or "LiteNetLib")
+                .OrderBy(a => a.GetName().Name, StringComparer.Ordinal)
+                .Select(a => $"{a.GetName().Name} {a.GetName().Version} @ {(string.IsNullOrEmpty(a.Location) ? "in memory (Pulsar)" : a.Location)}");
+            log.Info($"Tether assemblies: {string.Join("; ", ours)}");
         });
 
         Safe(log, "runtime", () =>
@@ -77,7 +81,7 @@ internal static class EnvironmentReport
         });
     }
 
-    private static string DescribePlatform()
+    public static string DescribePlatform()
     {
         if (OperatingSystem.IsLinux())
         {

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Hand-written interop declarations: NOT Keen code, NOT a copy or stub generated from game files.
+
+    It declares only the game type names Tether compiles against, so the plugin can be built and released
+    from this repository alone (in CI, reproducibly, with no game install). At runtime the real game
+    assembly is used. This one is never shipped: the plugin references it with Private=false.
+
+    Version 0.0.0.0, so a reference to it binds to whatever VRage.Core version the game ships.
+    Keep this file as small as possible; every declaration here is an assumption checked in Phase 0.
+  -->
+  <PropertyGroup>
+    <TargetFramework>$(TetherTargetFramework)</TargetFramework>
+    <AssemblyName>VRage.Core</AssemblyName>
+    <RootNamespace>Keen.VRage.Core</RootNamespace>
+    <AssemblyVersion>0.0.0.0</AssemblyVersion>
+    <FileVersion>0.0.0.0</FileVersion>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <!-- Declarations only: nothing here is ever executed. -->
+    <ProduceReferenceAssembly>false</ProduceReferenceAssembly>
+  </PropertyGroup>
+</Project>

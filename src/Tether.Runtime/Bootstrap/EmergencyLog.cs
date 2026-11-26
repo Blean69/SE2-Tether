@@ -4,7 +4,7 @@
 using System;
 using System.IO;
 
-namespace Tether.Plugin.Bootstrap;
+namespace Tether.Runtime.Bootstrap;
 
 /// <summary>
 /// Last-resort logging for failures before the normal log exists. Uses only the base library.

@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net9.0": {
+      "LiteNetLib": {
+        "type": "Transitive",
+        "resolved": "2.1.5",
+        "contentHash": "inIiisoxrbxLgTPeKDzkfdEVuQuITo/cCdZYrNs0iUNTlg1AnnTi2orYqHL5Dqz0yo5qeOX5zvywh0RIUi675g=="
+      },
+      "tether.core": {
+        "type": "Project",
+        "dependencies": {
+          "LiteNetLib": "[2.1.5, )"
+        }
+      }
+    }
+  }
+}

@@ -72,6 +72,30 @@ public class UdpTransportTests
     }
 
     [Fact]
+    public void ChatSentRightBeforeLeaving_StillArrives()
+    {
+        var log = new TestLog();
+        var hostTransport = UdpTransport.CreateHost(0, FastTimeouts, log);
+        using var host = new HostSession(hostTransport, new HostOptions(), log: log);
+        host.Start();
+        var a = new ClientSession(UdpTransport.CreateClient("127.0.0.1", hostTransport.LocalPort, FastTimeouts, log), new ClientOptions { PlayerName = "Alice" }, log: log);
+        a.Start();
+        Assert.True(PumpUntil(new Action[] { host.Poll, a.Poll }, () => a.State == ClientState.Joined), Dump(log));
+
+        var hostChat = new List<string>();
+        var left = new List<DisconnectReason>();
+        host.ChatReceived += (_, t) => hostChat.Add(t);
+        host.PlayerLeft += (_, r) => left.Add(r);
+
+        a.SendChat("last words");
+        a.Leave(); // disposes the transport immediately; the graceful close must still deliver the chat first
+
+        Assert.True(PumpUntil(new Action[] { host.Poll }, () => left.Count == 1), Dump(log));
+        Assert.Equal(new[] { "last words" }, hostChat);
+        Assert.Equal(DisconnectReason.ClientLeft, left[0]);
+    }
+
+    [Fact]
     public void Join_WorksUnderSimulatedLatencyAndLoss()
     {
         var lossy = FastTimeouts with { SimulatedLatencyMs = (30, 60), SimulatedPacketLossPercent = 10 };

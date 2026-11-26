@@ -29,7 +29,7 @@
     <Product>Tether</Product>
     <Copyright>Copyright (C) 2026 Tether contributors</Copyright>
     <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
-    <RepositoryUrl>https://github.com/Blean69/SE2-MP</RepositoryUrl>
+    <RepositoryUrl>https://github.com/Blean69/SE2-Tether</RepositoryUrl>
 
     <!-- Reproducible builds: anyone with the same inputs gets byte-identical outputs. -->
     <Deterministic>true</Deterministic>

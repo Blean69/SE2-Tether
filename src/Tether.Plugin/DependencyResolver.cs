@@ -6,10 +6,10 @@ using System.IO;
 using System.Reflection;
 using System.Runtime.Loader;
 
-namespace Tether.Plugin.Bootstrap;
+namespace Tether.Plugin;
 
 /// <summary>
-/// Lets the runtime find Tether's own dependencies (Tether.Core, LiteNetLib) next to Tether.dll.
+/// Lets the runtime find Tether's own assemblies (Tether.Runtime, Tether.Core, LiteNetLib) next to Tether.dll.
 /// The game loads plugins by path, and depending on how it does so the runtime may not look in the
 /// plugin's folder by itself. Only assemblies that actually exist in our folder are served.
 /// </summary>

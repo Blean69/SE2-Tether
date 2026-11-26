@@ -6,28 +6,37 @@ can dump the game's networking API names to local files.
 
 It takes about 20 minutes. Do it on Windows first, then on Linux/Proton if you have it.
 
-## 1. Build
+## 1. Get Tether
+
+**Easiest: download the test kit.** No .NET SDK is needed. Each CI run on GitHub (Actions > CI > the
+latest run) attaches a `tether-test-kit` artifact. Unzip it; `README-TESTING.md` inside covers the
+install and the network tests in detail.
+
+**Or build from source** with the .NET 10 SDK:
 
 ```sh
-git clone <this repo> && cd <repo>
-dotnet test tests/Tether.Core.Tests        # sanity check: the core works without the game
+tools/package.sh            # builds artifacts/tether-<version>.zip, byte-identical to CI's for the same commit
+# or, to compile against your own game install for stronger compile-time checks:
 dotnet build src/Tether.Plugin -c Release
 ```
 
 The plugin build finds the game automatically: through Steam's registry entry on Windows, and in the
-usual Steam paths on Linux. If it doesn't, copy `Directory.Build.props.user.example` to
-`Directory.Build.props.user` and set `Game2Dir` to the folder that contains `SpaceEngineers2.exe`.
+usual Steam paths on Linux. To point it elsewhere, set `Game2Dir` in `Directory.Build.props.user` (see
+the `.example` file).
 
-**If the build fails**, the most likely cause is that `IPlugin` or `PluginHost` live in a different
-assembly than `VRage.Core.dll`. Note the error and add the right assembly to the reference list in
-`src/Tether.Plugin/Tether.Plugin.csproj`. That's a Phase 0 finding in itself.
+**If a build against the real game fails**, the likely cause is that `IPlugin` or `PluginHost` live
+somewhere other than `VRage.Core.dll`. That's a Phase 0 finding: note the error. The test kit build uses
+Tether's own interop declarations instead (`ref/VRage.Core.Interop`), and Test A shows whether those
+match the game.
 
 ## 2. Install
 
+From the unzipped kit (or `tools/` in the repo):
+
 | Platform | Command | Launch option it prints |
 |---|---|---|
-| Windows | `powershell -ExecutionPolicy Bypass -File tools\install.ps1` | `-plugins:"%LOCALAPPDATA%\Tether\Tether.dll"`, expanded to the real path |
-| Linux (Proton) | `tools/install.sh` (run the game once under Proton first) | `-plugins:C:\Tether\Tether.dll` |
+| Windows | `powershell -ExecutionPolicy Bypass -File install.ps1` | `-plugins:"%LOCALAPPDATA%\Tether\Tether.dll"`, expanded to the real path |
+| Linux (Proton) | `./install.sh` (run the game once under Proton first) | `-plugins:C:\Tether\Tether.dll` |
 
 In Steam, open Space Engineers 2 > Properties > General > Launch Options and paste the printed option,
 then add the diagnostic flags:
@@ -35,6 +44,9 @@ then add the diagnostic flags:
 ```
 -plugins:"...\Tether.dll" -tether:debug -tether:dump-api
 ```
+
+To also run the in-game network self-test in the same session, add `-tether:host-test` and join from
+another machine with `nettest join <IP>` (see `README-TESTING.md`, Test B).
 
 ## 3. Run
 
@@ -65,7 +77,7 @@ look in the game's own log for "Tether" or plugin errors.
 |---|---|
 | Runtime version, and whether startup hooks are allowed | `SpaceEngineers2.runtimeconfig.json:` and `Startup hooks switch:` |
 | Game build to pin | `SpaceEngineers2.dll file version:` |
-| Does `-plugins:` load us, and do our dependencies resolve? | `Tether bootstrap complete` means `Tether.Core.dll` resolved |
+| Does `-plugins:` load us, and do our dependencies resolve? | `Tether bootstrap complete`, and `Tether assemblies:` lists all four DLLs from the install folder |
 | PluginHost API in this build | the `PluginHost (...)` line |
 | Lifecycle timing | the `Lifecycle:` lines |
 | Proton detection | `Platform:` |

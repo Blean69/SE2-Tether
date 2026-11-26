@@ -86,6 +86,9 @@ public sealed class ClientSession : IDisposable
     /// <summary>Everyone in the session, ordered by id (the host first).</summary>
     public IList<PlayerInfo> Players => _players.Values;
 
+    /// <summary>Smoothed round-trip time to the host in milliseconds, or -1 if unknown.</summary>
+    public int RoundTripTimeMs => State == ClientState.Joined ? _connection?.RoundTripTimeMs ?? -1 : -1;
+
     public DisconnectReason? EndReason { get; private set; }
 
     public string? EndMessage { get; private set; }

@@ -4,7 +4,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace Tether.Plugin.Bootstrap;
+namespace Tether.Runtime.Bootstrap;
 
 /// <summary>
 /// Tether's own launch options, written as <c>-tether:&lt;name&gt;[=&lt;value&gt;]</c> next to <c>-plugins:</c>
@@ -14,6 +14,9 @@ namespace Tether.Plugin.Bootstrap;
 /// <c>-tether:debug</c> logs at debug level.
 /// <c>-tether:dump-api</c> writes the networking API surface to the data folder.
 /// <c>-tether:dump-api=Keen.VRage.Multiplayer,Keen.Game2.Game.Networking</c> chooses the namespaces.
+/// <c>-tether:host-test[=port]</c> or <c>-tether:join-test=host[:port]</c> runs the network self-test
+/// (see InGameNetworkTest), with optional <c>-tether:name=...</c> and <c>-tether:password=...</c>.
+/// <c>-tether:data=&lt;folder&gt;</c> puts Tether's log and other files in that folder instead of the default.
 /// </example>
 internal sealed class LaunchOptions
 {

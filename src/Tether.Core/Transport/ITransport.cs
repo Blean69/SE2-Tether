@@ -88,10 +88,18 @@ public abstract class TransportConnection
     public abstract SendResult Send(byte channel, ReadOnlySpan<byte> payload);
 
     /// <summary>
-    /// Closes the connection and tells the remote side why, where the backend supports it. The local
-    /// <see cref="ITransportEvents.OnDisconnected"/> follows during the next <see cref="ITransport.Poll"/>.
-    /// Repeated calls do nothing.
+    /// Closes the connection gracefully and tells the remote side why, where the backend supports it.
     /// </summary>
+    /// <remarks>
+    /// <para>
+    /// Reliable messages already sent are delivered before the remote side sees the disconnect. This is a
+    /// best effort with a short, bounded wait.
+    /// </para>
+    /// <para>
+    /// No more messages can be sent on the connection. The local <see cref="ITransportEvents.OnDisconnected"/>
+    /// follows during the next <see cref="ITransport.Poll"/>. Repeated calls do nothing.
+    /// </para>
+    /// </remarks>
     public abstract void Disconnect(DisconnectReason reason, string? message = null);
 
     public override string ToString() => $"{RemoteDescription} (conn {Id})";

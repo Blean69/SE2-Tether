@@ -46,6 +46,12 @@ public sealed class UdpTransport : ITransport
     /// <summary>Filters stray traffic at connect time. The real compatibility check is the Hello handshake.</summary>
     internal const string ConnectionKey = "Tether";
 
+    /// <summary>How long a closing connection waits for its earlier reliable messages to be acknowledged.</summary>
+    internal const int LingerMs = 1_000;
+
+    /// <summary>How long Dispose waits for that, at most, before closing everything anyway.</summary>
+    internal const int DisposeLingerMs = 500;
+
     private readonly UdpTransportOptions _options;
     private readonly ITetherLog _log;
     private readonly string? _remoteHost;
@@ -54,6 +60,7 @@ public sealed class UdpTransport : ITransport
     private readonly NetManager _manager;
     private readonly Dictionary<NetPeer, UdpConnection> _connections = new();
     private readonly List<UdpConnection> _pendingLocalDisconnects = new();
+    private readonly List<(UdpConnection Connection, byte[] Data, long Deadline)> _lingering = new();
     private ITransportEvents? _events;
     private UdpConnection? _clientConnection;
     private bool _disposed;
@@ -159,6 +166,7 @@ public sealed class UdpTransport : ITransport
         }
 
         _manager.PollEvents();
+        CompleteLingering(force: false);
 
         if (_pendingLocalDisconnects.Count > 0)
         {
@@ -184,12 +192,58 @@ public sealed class UdpTransport : ITransport
             connection.MarkClosed();
         }
 
+        // Give messages already sent a short, bounded chance to be delivered (e.g. a last chat line before
+        // leaving), then close every connection. LiteNetLib sends from its own thread, so we only wait.
+        var deadline = Environment.TickCount64 + DisposeLingerMs;
+        while (_lingering.Count > 0 && Environment.TickCount64 < deadline)
+        {
+            CompleteLingering(force: false);
+            if (_lingering.Count > 0)
+            {
+                System.Threading.Thread.Sleep(5);
+            }
+        }
+
+        CompleteLingering(force: true);
         _connections.Clear();
         _pendingLocalDisconnects.Clear();
         _manager.Stop(true);
     }
 
     internal NetManager Manager => _manager;
+
+    /// <summary>Closes <paramref name="connection"/> once its reliable messages are acknowledged, or after <see cref="LingerMs"/>.</summary>
+    internal void Linger(UdpConnection connection, byte[] disconnectData) =>
+        _lingering.Add((connection, disconnectData, Environment.TickCount64 + LingerMs));
+
+    private void CompleteLingering(bool force)
+    {
+        for (var i = _lingering.Count - 1; i >= 0; i--)
+        {
+            var (connection, data, deadline) = _lingering[i];
+            var peer = connection.Peer!;
+            if (!force && Environment.TickCount64 < deadline && HasUnacknowledgedReliable(peer))
+            {
+                continue;
+            }
+
+            _lingering.RemoveAt(i);
+            _manager.DisconnectPeer(peer, data);
+        }
+    }
+
+    private static bool HasUnacknowledgedReliable(NetPeer peer)
+    {
+        for (byte channel = 0; channel < Channels.Count; channel++)
+        {
+            if (Channels.DeliveryOf(channel) == Delivery.ReliableOrdered && peer.GetPacketsCountInReliableQueue(channel, ordered: true) > 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     internal void QueueLocalDisconnect(UdpConnection connection, DisconnectReason reason, string? message)
     {
@@ -441,7 +495,9 @@ internal sealed class UdpConnection : TransportConnection
         _closed = true;
         if (Peer is not null)
         {
-            _owner.Manager.DisconnectPeer(Peer, UdpTransport.EncodeDisconnect(reason, message));
+            // Graceful close: reliable messages sent before this are delivered first (bounded wait), then the
+            // remote side gets our reason. The local disconnect event still arrives on the next Poll.
+            _owner.Linger(this, UdpTransport.EncodeDisconnect(reason, message));
         }
 
         _owner.QueueLocalDisconnect(this, reason, message);

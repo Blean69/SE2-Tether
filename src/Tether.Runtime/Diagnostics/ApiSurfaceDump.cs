@@ -10,7 +10,7 @@ using System.Runtime.Loader;
 using System.Text;
 using Tether.Diagnostics;
 
-namespace Tether.Plugin.Diagnostics;
+namespace Tether.Runtime.Diagnostics;
 
 /// <summary>
 /// Writes the names and signatures of the game's types in chosen namespaces to text files, one per

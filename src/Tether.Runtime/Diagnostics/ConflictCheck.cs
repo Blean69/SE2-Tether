@@ -5,7 +5,7 @@ using System;
 using System.Linq;
 using Tether.Diagnostics;
 
-namespace Tether.Plugin.Diagnostics;
+namespace Tether.Runtime.Diagnostics;
 
 /// <summary>
 /// Detects other multiplayer plugins. They patch the same game systems, so Tether will refuse to enable

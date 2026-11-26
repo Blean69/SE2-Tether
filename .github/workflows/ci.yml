@@ -13,8 +13,8 @@ env:
   POWERSHELL_TELEMETRY_OPTOUT: "1"
 
 jobs:
-  core:
-    name: Core build and tests (${{ matrix.os }})
+  build:
+    name: Build and test (${{ matrix.os }})
     strategy:
       fail-fast: false
       matrix:
@@ -30,33 +30,91 @@ jobs:
           dotnet-version: 9.0.x
 
       - name: Restore (locked)
-        run: dotnet restore tests/Tether.Core.Tests --locked-mode
+        run: dotnet restore Tether.sln --locked-mode
 
-      - name: Build
-        run: dotnet build tests/Tether.Core.Tests -c Release --no-restore
+      # The plugin compiles against Tether's interop declarations here; no game files are involved.
+      - name: Build everything
+        run: dotnet build Tether.sln -c Release --no-restore
 
       - name: Test
         run: dotnet test tests/Tether.Core.Tests -c Release --no-build --logger "console;verbosity=normal"
 
-  reproducible:
-    name: Reproducible build check
+  package:
+    name: Package test kit (reproducible)
+    needs: build
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+      attestations: write
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
           dotnet-version: 9.0.x
-      - name: Build Tether.Core twice from clean and compare
+
+      - name: Build the kit twice from clean and require identical output
         shell: bash
         run: |
           set -euo pipefail
-          for i in 1 2; do
-            rm -rf src/Tether.Core/bin src/Tether.Core/obj
-            dotnet build src/Tether.Core -c Release -o "out/$i"
-          done
-          sha256sum out/1/Tether.Core.dll out/2/Tether.Core.dll
-          cmp out/1/Tether.Core.dll out/2/Tether.Core.dll
+          tools/package.sh out/a
+          git clean -xfdq -e out/
+          tools/package.sh out/b
+          cmp out/a/*.zip out/b/*.zip
+          echo "Reproducible: $(cat out/a/*.zip.sha256)" >> "$GITHUB_STEP_SUMMARY"
+
+      # Attestations need a public repository (or GitHub Enterprise); skipped while the repo is private.
+      - name: Attest build provenance
+        if: github.event_name == 'push' && !github.event.repository.private
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: out/a/*.zip
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tether-test-kit
+          path: |
+            out/a/*.zip
+            out/a/*.zip.sha256
+          if-no-files-found: error
+
+  e2e:
+    name: End-to-end on the packaged kit (${{ matrix.os }})
+    needs: package
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          dotnet-version: 9.0.x
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: tether-test-kit
+          path: download
+
+      - name: Unpack
+        shell: pwsh
+        run: |
+          $zip = Get-ChildItem download -Filter *.zip | Select-Object -First 1
+          Expand-Archive -Path $zip.FullName -DestinationPath kit
+
+      - name: Build the stand-in game process (test only, not shipped)
+        run: dotnet build tests/Tether.Plugin.SmokeHost -c Release
+
+      - name: Run end-to-end tests against the kit
+        shell: bash
+        run: |
+          set -euo pipefail
+          kit="$(ls -d kit/tether-*)"
+          (cd "$kit" && sha256sum -c SHA256SUMS)
+          tools/e2e-test.sh "$kit" tests/Tether.Plugin.SmokeHost/bin/Release/net9.0/Tether.Plugin.SmokeHost.dll
 
   hygiene:
     name: Scripts and repository hygiene
@@ -66,7 +124,7 @@ jobs:
       - name: No binaries in git
         shell: bash
         run: |
-          if git ls-files | grep -Ei '\.(dll|exe|so|dylib|nupkg)$'; then
+          if git ls-files | grep -Ei '\.(dll|exe|so|dylib|nupkg|zip)$'; then
             echo "Binaries must not be committed. Releases are built from source." >&2
             exit 1
           fi

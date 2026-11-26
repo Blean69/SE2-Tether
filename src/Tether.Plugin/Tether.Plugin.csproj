@@ -1,10 +1,18 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    The Space Engineers 2 plugin. It references the game's own assemblies from your local install
-    (see build/Game2.props), so it only builds on a machine with the game. CI builds and tests Tether.Core instead.
+    The Space Engineers 2 plugin entry point: Tether.dll, a deliberately tiny loader shim. It depends only on
+    the base library and the game's IPlugin/PluginHost, then hands over to Tether.Runtime (src/Tether.Runtime).
 
-    Output: Tether.dll plus its dependencies (Tether.Core.dll, LiteNetLib.dll). Load it with the game's launch option:
-      -plugins:"<install folder>\Tether.dll"
+    Output: Tether.dll plus Tether.Runtime.dll, Tether.Core.dll and LiteNetLib.dll. Load it with the game's
+    launch option -plugins:"<install folder>\Tether.dll".
+
+    Game references come from one of two places:
+      * TetherUseGameReferences=true: your local game install (see build/Game2.props). The default when the
+        game is found; this gives the strongest compile-time checks.
+      * TetherUseGameReferences=false: Tether's hand-written interop declarations (ref/VRage.Core.Interop).
+        The default when no game is found. Release builds always use this, so anyone can rebuild a release
+        byte-for-byte from this repository alone.
+    Either way, game assemblies are referenced in place and never copied or shipped.
   -->
   <Import Project="..\..\build\Game2.props" />
 
@@ -18,35 +26,42 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(TetherUseGameReferences)' == ''">
+    <TetherUseGameReferences Condition="'$(Game2Dir)' != '' and Exists('$(Game2Dir)/VRage.Core.dll')">true</TetherUseGameReferences>
+    <TetherUseGameReferences Condition="'$(TetherUseGameReferences)' == ''">false</TetherUseGameReferences>
+  </PropertyGroup>
+
   <ItemGroup>
-    <ProjectReference Include="..\Tether.Core\Tether.Core.csproj" />
+    <ProjectReference Include="..\Tether.Runtime\Tether.Runtime.csproj" />
   </ItemGroup>
 
-  <!--
-    Game assemblies, referenced in place and never copied (Private=false). The list is deliberately small.
-    At compile time Tether needs only IPlugin and PluginHost (namespace Keen.VRage.Core.Plugins). Everything
-    else is reached through reflection until Phase 0 confirms the API. Add assemblies here as features need them.
-  -->
-  <ItemGroup>
-    <Reference Include="VRage.Core" Condition="Exists('$(Game2Dir)/VRage.Core.dll')">
+  <!-- At compile time Tether needs only IPlugin and PluginHost (Keen.VRage.Core.Plugins). Everything else
+       is reached through reflection until Phase 0 confirms the API. -->
+  <ItemGroup Condition="'$(TetherUseGameReferences)' == 'true'">
+    <Reference Include="VRage.Core">
       <HintPath>$(Game2Dir)/VRage.Core.dll</HintPath>
       <Private>false</Private>
     </Reference>
-    <Reference Include="VRage.Library" Condition="Exists('$(Game2Dir)/VRage.Library.dll')">
-      <HintPath>$(Game2Dir)/VRage.Library.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
-    <Reference Include="SpaceEngineers2" Condition="Exists('$(Game2Dir)/SpaceEngineers2.dll')">
-      <HintPath>$(Game2Dir)/SpaceEngineers2.dll</HintPath>
-      <Private>false</Private>
-    </Reference>
   </ItemGroup>
 
-  <Target Name="TetherRequireGame" BeforeTargets="ResolveAssemblyReferences">
-    <Error Condition="'$(Game2Dir)' == ''"
-           Text="Space Engineers 2 was not found. Set Game2Dir (the folder containing SpaceEngineers2.exe) in Directory.Build.props.user or pass -p:Game2Dir=..." />
-    <Error Condition="'$(Game2Dir)' != '' and !Exists('$(Game2Dir)/SpaceEngineers2.dll')"
-           Text="SpaceEngineers2.dll not found in Game2Dir '$(Game2Dir)'." />
-    <Message Importance="high" Text="Tether: building against game assemblies in $(Game2Dir)" />
+  <ItemGroup Condition="'$(TetherUseGameReferences)' != 'true'">
+    <ProjectReference Include="..\..\ref\VRage.Core.Interop\VRage.Core.Interop.csproj">
+      <Private>false</Private>
+    </ProjectReference>
+  </ItemGroup>
+
+  <Target Name="TetherReportReferences" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="'$(TetherUseGameReferences)' == 'true' and !Exists('$(Game2Dir)/VRage.Core.dll')"
+           Text="TetherUseGameReferences=true but VRage.Core.dll was not found in Game2Dir '$(Game2Dir)'." />
+    <Message Importance="high" Condition="'$(TetherUseGameReferences)' == 'true'" Text="Tether: compiling against the game assemblies in $(Game2Dir)" />
+    <Message Importance="high" Condition="'$(TetherUseGameReferences)' != 'true'" Text="Tether: compiling against Tether's interop declarations (no game install needed)" />
+  </Target>
+
+  <!-- Belt and braces: a game assembly (real or our declaration) must never end up next to Tether.dll. -->
+  <Target Name="TetherNoGameAssembliesInOutput" AfterTargets="Build;Publish">
+    <ItemGroup>
+      <_TetherForbidden Include="$(OutDir)VRage.*.dll;$(OutDir)Game2.*.dll;$(OutDir)SpaceEngineers2*.dll;$(PublishDir)VRage.*.dll;$(PublishDir)Game2.*.dll;$(PublishDir)SpaceEngineers2*.dll" />
+    </ItemGroup>
+    <Error Condition="'@(_TetherForbidden)' != ''" Text="Game assemblies must never be shipped with Tether: @(_TetherForbidden)" />
   </Target>
 </Project>

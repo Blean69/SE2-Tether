@@ -37,6 +37,18 @@ internal static class SessionPatches
         installed += Try(log, "host update crash guard", () => MultiplayerFixes.InstallTolerantDispatch(harmony));
         installed += Try(log, "remote failure crash guard", () => MultiplayerFixes.InstallRemoteFaults(harmony));
         installed += Try(log, "planet flora crash guard", () => MultiplayerFixes.InstallFloraPhysics(harmony));
+
+        // The general safety net (see SafetyNet). -tether:safety=off leaves the game's own behaviour.
+        if (GameModule.Settings.SafetyNet)
+        {
+            installed += Try(log, "safety net: component setup", () => SafetyNet.InstallComponentSetup(harmony));
+            installed += Try(log, "safety net: per-frame updates", () => SafetyNet.InstallFrameUpdates(harmony));
+            installed += Try(log, "safety net: replication batches", () => SafetyNet.InstallReplicationBatches(harmony));
+        }
+        else
+        {
+            log.Info("Safety net: off (-tether:safety=off). Errors in the game's multiplayer code will crash it as usual.");
+        }
         installed += Try(log, "no pause while others can join", () => PauseInMultiplayer.Install(harmony));
         installed += Try(log, "join requests", () =>
         {

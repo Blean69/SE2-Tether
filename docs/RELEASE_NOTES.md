@@ -6,6 +6,15 @@ adds the controls to use it.
 
 ### What's new in alpha.4
 
+- **A safety net against crashes in the game's multiplayer code.** So far each crash had the same cause: the
+  joining game set up or updated something it received, one part of it failed, and nothing caught the error.
+  Now, in the world copy a player sees:
+  - a part that fails to set up is skipped, and the object is still created;
+  - a per-frame update that fails is skipped for that frame;
+  - a message from the other player that fails to process is dropped.
+
+  Every catch is written to `tether.log`, so the causes can still be fixed. The host's own simulation is not
+  covered, so a bug there can't quietly damage the saved world. `-tether:safety=off` turns the safety net off.
 - **Joining players crashed near planet vegetation.** Creating a planet's flora sector failed on the joining
   side while storing two optional destruction settings, and the half-built sector then crashed the game. The
   sector is now created without those settings.

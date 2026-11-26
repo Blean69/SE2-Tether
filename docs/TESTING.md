@@ -128,6 +128,7 @@ Add these to the launch options after the `-plugins:` option:
 | `-tether:debug` | Detailed log. The installer adds it for test builds. |
 | `-tether:visibility=friends` | Open new worlds to friends straight away. Also `hidden`, `private`, `public`. |
 | `-tether:mp=off` | Leave the game's multiplayer switched off. Tether then only runs its self-tests. |
+| `-tether:safety=off` | Turn off the safety net, which logs failures in the game's multiplayer code and keeps the game running. With it off, they crash the game as usual. Useful for debugging. |
 
 ## Other tests
 

@@ -24,19 +24,23 @@ internal enum HostVisibility
     Public,
 }
 
-internal sealed record TetherSettings(bool MultiplayerEnabled, HostVisibility Visibility, string? JoinCode)
+/// <param name="SafetyNet">
+/// Keep the game running when one network message fails to process (and, where hooked, one component), logging
+/// it instead of crashing. <c>-tether:safety=off</c> restores the game's own behaviour, for debugging.
+/// </param>
+internal sealed record TetherSettings(bool MultiplayerEnabled, HostVisibility Visibility, string? JoinCode, bool SafetyNet = true)
 {
     public static readonly TetherSettings Default = new(true, HostVisibility.Hidden, null);
 
     /// <summary>
-    /// Reads <c>-tether:mp=off</c>, <c>-tether:visibility=hidden|private|friends|public</c> and
-    /// <c>-tether:join=CODE</c>. The in-game panel will replace the visibility option; until then it is the
+    /// Reads <c>-tether:mp=off</c>, <c>-tether:visibility=hidden|private|friends|public</c>,
+    /// <c>-tether:join=CODE</c> and <c>-tether:safety=off</c>. The in-game panel will replace the visibility option; until then it is the
     /// way to open a world up.
     /// </summary>
     public static TetherSettings FromOptions(IReadOnlyDictionary<string, string?> options, ITetherLog log)
     {
-        var enabled = !(options.TryGetValue("mp", out var mp) && mp is not null
-            && (mp.Equals("off", StringComparison.OrdinalIgnoreCase) || mp.Equals("false", StringComparison.OrdinalIgnoreCase)));
+        var enabled = !IsOff(options, "mp");
+        var safetyNet = !IsOff(options, "safety");
 
         var visibility = Default.Visibility;
         if (options.TryGetValue("visibility", out var v) && !string.IsNullOrWhiteSpace(v))
@@ -52,8 +56,12 @@ internal sealed record TetherSettings(bool MultiplayerEnabled, HostVisibility Vi
         }
 
         options.TryGetValue("join", out var join);
-        return new TetherSettings(enabled, visibility, string.IsNullOrWhiteSpace(join) ? null : join.Trim());
+        return new TetherSettings(enabled, visibility, string.IsNullOrWhiteSpace(join) ? null : join.Trim(), safetyNet);
     }
+
+    private static bool IsOff(IReadOnlyDictionary<string, string?> options, string name) =>
+        options.TryGetValue(name, out var value) && value is not null
+        && (value.Equals("off", StringComparison.OrdinalIgnoreCase) || value.Equals("false", StringComparison.OrdinalIgnoreCase));
 
     public static JoinableSessionType ToGame(HostVisibility visibility) => visibility switch
     {

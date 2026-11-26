@@ -71,6 +71,9 @@ Code-signed builds would avoid all this, but they aren't available yet.
    **join code** the panel shows (Copy code puts it on your clipboard). The code only works when the world
    is set to Public.
 
+While your world is open to others, or anyone is in it, the pause menu doesn't pause the game. Your game
+runs the world for everyone, so pausing it would freeze them too.
+
 ### Join a friend's world
 
 1. Start the game and wait at the main menu.

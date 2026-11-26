@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Tether contributors. Game-linking exception: see LICENSE-EXCEPTION.md.
 
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using HarmonyLib;
 using Keen.VRage.Core.Services.Data;
@@ -19,6 +20,7 @@ namespace Tether.Game.Sessions;
 internal static class HostedSession
 {
     private static readonly object Gate = new();
+    private static readonly HashSet<GameServiceUser> s_connected = new();
     private static Type? s_guardedType;
     private static bool s_applying;
 
@@ -26,12 +28,38 @@ internal static class HostedSession
 
     public static HostVisibility Visibility { get; private set; } = HostVisibility.Hidden;
 
+    /// <summary>True while other players are in the hosted world or can join it: then it must keep running.</summary>
+    public static bool KeepsWorldRunning
+    {
+        get
+        {
+            lock (s_connected)
+            {
+                return Current is not null && (Visibility != HostVisibility.Hidden || s_connected.Count > 0);
+            }
+        }
+    }
+
     private static ITetherLog Log => GameModule.Log;
+
+    /// <summary>
+    /// Forgets the previous world's session as soon as the game starts hosting a new one, so the guard doesn't apply
+    /// the old world's visibility to the new session before <see cref="Attach"/> runs.
+    /// </summary>
+    public static void Reset()
+    {
+        Current = null;
+        Visibility = GameModule.Settings.Visibility;
+        lock (s_connected)
+        {
+            s_connected.Clear();
+        }
+    }
 
     public static void Attach(IHostedGameSession session)
     {
+        Reset();
         Current = session;
-        Visibility = GameModule.Settings.Visibility;
         Log.Info($"Hosting: session ready. {DescribeCode(session)}");
         InstallGuards(session.GetType());
         Apply(Visibility);
@@ -47,6 +75,7 @@ internal static class HostedSession
         Visibility = visibility;
         Apply(visibility);
         Toasts.Show(TetherSettings.Describe(visibility));
+        PauseInMultiplayer.Refresh();
     }
 
     /// <summary>Watches who knocks, so the host (and the logs) can see joins happen or fail.</summary>
@@ -64,9 +93,20 @@ internal static class HostedSession
             {
                 Log.Info($"Hosting: {Describe(user)} is connecting.");
                 Toasts.Show($"{Describe(user)} is joining your world.");
+                lock (s_connected)
+                {
+                    s_connected.Add(user);
+                }
+
+                PauseInMultiplayer.Refresh();
             };
             communication.PeerConnectionFailed += (user, reason) =>
             {
+                lock (s_connected)
+                {
+                    s_connected.Remove(user);
+                }
+
                 Log.Info($"Hosting: connection with {Describe(user)} ended: {reason}.");
                 if (reason != ConnectionFailureReason.ClosedByLocalUser)
                 {

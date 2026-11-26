@@ -33,6 +33,7 @@ internal static class SessionPatches
         installed += Try(log, "client session", () => Postfix(harmony, typeof(GameSessionClientComponent), "Init", nameof(ClientInitPostfix)));
         installed += Try(log, "client crash guard", () => ReplicationGuard.Install(harmony));
         installed += Try(log, "large network messages", () => LargeMessages.Install(harmony));
+        installed += Try(log, "no pause while others can join", () => PauseInMultiplayer.Install(harmony));
         installed += Try(log, "join requests", () =>
         {
             Prefix(harmony, typeof(GameSessionsCoreComponent), "OnJoinSessionRequested", nameof(JoinRequestedPrefix));
@@ -54,6 +55,7 @@ internal static class SessionPatches
     private static void HostInitPostfix(GameSessionHostComponent __instance)
     {
         Log.Debug("Hosting: the game's host component initialised; waiting for its session.");
+        HostedSession.Reset();
         _ = WatchHostedAsync(((IHostedGameSessionProvider)__instance).HostedGameSession);
     }
 

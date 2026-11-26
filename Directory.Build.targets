@@ -1,0 +1,23 @@
+<Project>
+  <!--
+    Reproducible builds across clones.
+
+    Source Link embeds the repository URL in each assembly's debug information. By default it takes that
+    URL from the local git remote, so a clone made through an old name, over SSH, or from a mirror would
+    produce different bytes for the same commit. Pin it to the canonical RepositoryUrl
+    (Directory.Build.props) so that anyone can rebuild a release byte-for-byte.
+  -->
+  <PropertyGroup>
+    <SourceControlManagerUrlTranslationTargets>$(SourceControlManagerUrlTranslationTargets);TetherCanonicalRepositoryUrl</SourceControlManagerUrlTranslationTargets>
+  </PropertyGroup>
+
+  <Target Name="TetherCanonicalRepositoryUrl" Condition="'$(RepositoryUrl)' != ''">
+    <PropertyGroup>
+      <ScmRepositoryUrl>$(RepositoryUrl)</ScmRepositoryUrl>
+      <PrivateRepositoryUrl>$(RepositoryUrl)</PrivateRepositoryUrl>
+    </PropertyGroup>
+    <ItemGroup>
+      <SourceRoot Update="%(Identity)" ScmRepositoryUrl="$(RepositoryUrl)" RepositoryUrl="$(RepositoryUrl)" Condition="'%(SourceRoot.SourceControl)' == 'git'" />
+    </ItemGroup>
+  </Target>
+</Project>

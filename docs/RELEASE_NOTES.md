@@ -1,22 +1,26 @@
-**Early test build.** This one targets the problem that stopped the first join test: the joining player
-connected but never received the host's world.
+**Early test build.** Joining a friend's world works. This build fixes the crashes found while playing
+together.
 
 Space Engineers 2 already contains multiplayer that Keen has built but hidden. Tether switches it on and
 adds the controls to use it.
 
-### What's new in alpha.2
+### What's new in alpha.3
 
-- **Joining can now receive the host's world.** When someone joins, the host's game sends the whole world
-  (tens of thousands of objects) in messages far larger than the 512 KB Steam allows for one message. The
-  game handed them to Steam anyway, Steam refused them, and the game dropped them without a word, so the
-  joining player got an empty world and then crashed. Tether now splits large messages into pieces and
-  puts them back together on the other side.
-- **A crash guard for joining players.** If the host removes an object the joining game never received,
-  the joining game now skips it instead of crashing.
-- **The pause menu's Multiplayer button now appears.** In alpha.1 it was added but drew nothing.
+The second test got a joining player into the host's world. These fixes target the crashes it found, all in the
+game's own, unfinished multiplayer code:
 
-**Both players need alpha.2.** The host's game does the splitting and the joining game puts the pieces back
-together.
+- **Joining players crashed when a vehicle with wheels was nearby.** The game picks a rolling sound from the
+  surface each wheel touches, and crashed when it didn't recognise the surface. It now plays no sound instead.
+- **The host crashed while sending updates** about an object it hadn't sent to that player yet. That update is
+  now marked unknown and skipped by the joining game.
+- **Joining players crashed when an action they started failed on the host,** for example putting away a hand
+  tool. The action is now cancelled and logged instead.
+- **The pause menu no longer pauses the world while others can join or are playing.** The host's game runs the
+  world for everyone, so pausing it froze them too.
+- Loading another world no longer briefly reuses the previous world's visibility setting.
+
+alpha.2 made joining possible: the host's world is sent in messages larger than Steam allows in one piece, so
+Tether splits them up and puts them back together. **Both players need alpha.3.**
 
 ### What it does
 
@@ -37,7 +41,7 @@ Both players need Space Engineers 2 **4.0.0.3169** (the current Steam build) and
 - **Windows:** download the zip below and unzip it. Quit the game, then double-click
   `Install Tether.cmd`. It replaces an earlier Tether install. Paste the launch option into Steam (Space
   Engineers 2 > Properties > General > Launch Options); the installer copies it to your clipboard. If you
-  already set it for alpha.1, it stays the same.
+  already set it for an earlier version, it stays the same.
 - **Linux with Proton:** run `./install.sh` from the unzipped folder, and set the launch option it
   prints, including its single quotes.
 
@@ -58,8 +62,11 @@ host's `tether.log` should say "Network: sent a … MB message in … pieces", a
 
 ### Known limitations
 
-- **Joining is still being tested.** This fixes the problem the first test found. It's the first time the
-  game's multiplayer gets this far, so there may be more behind it.
+- **Expect more rough edges.** This is the furthest the game's hidden multiplayer has been taken, and each
+  test so far has found something new. Send the logs when something breaks.
+- **Joining players can walk through closed doors.** Each player's game moves their own character, and doors
+  don't block a joining player yet.
+- **Worlds with mods are untested.**
 - **The first join can take a while:** the world is sent in one go, possibly tens of megabytes.
 - **Windows 11 Smart App Control.** Tether isn't code-signed yet. If Smart App Control is on, Windows
   blocks `Install Tether.cmd` with no option to run it, and it won't let the game load Tether either.

@@ -33,6 +33,9 @@ internal static class SessionPatches
         installed += Try(log, "client session", () => Postfix(harmony, typeof(GameSessionClientComponent), "Init", nameof(ClientInitPostfix)));
         installed += Try(log, "client crash guard", () => ReplicationGuard.Install(harmony));
         installed += Try(log, "large network messages", () => LargeMessages.Install(harmony));
+        installed += Try(log, "wheel sound crash guard", () => MultiplayerFixes.InstallWheelAudio(harmony));
+        installed += Try(log, "host update crash guard", () => MultiplayerFixes.InstallTolerantDispatch(harmony));
+        installed += Try(log, "remote failure crash guard", () => MultiplayerFixes.InstallRemoteFaults(harmony));
         installed += Try(log, "no pause while others can join", () => PauseInMultiplayer.Install(harmony));
         installed += Try(log, "join requests", () =>
         {

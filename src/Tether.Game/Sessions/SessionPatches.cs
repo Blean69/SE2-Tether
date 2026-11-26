@@ -32,6 +32,7 @@ internal static class SessionPatches
         installed += Try(log, "host session", () => Postfix(harmony, typeof(GameSessionHostComponent), "Init", nameof(HostInitPostfix)));
         installed += Try(log, "client session", () => Postfix(harmony, typeof(GameSessionClientComponent), "Init", nameof(ClientInitPostfix)));
         installed += Try(log, "client crash guard", () => ReplicationGuard.Install(harmony));
+        installed += Try(log, "large network messages", () => LargeMessages.Install(harmony));
         installed += Try(log, "join requests", () =>
         {
             Prefix(harmony, typeof(GameSessionsCoreComponent), "OnJoinSessionRequested", nameof(JoinRequestedPrefix));

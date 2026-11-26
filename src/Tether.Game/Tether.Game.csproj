@@ -28,7 +28,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <GameReference Include="VRage.Core;VRage.Core.Game;VRage.Library;VRage.DCS;VRage.Multiplayer;VRage.Input;VRage.UI;VRage.UI.Shared;VRage.Client;VRage.Game;Game2.Game;Game2.Simulation;Game2.Client;Avalonia.Base;Avalonia.Controls" />
+    <GameReference Include="Steamworks.NET;VRage.Core;VRage.Core.Game;VRage.Library;VRage.DCS;VRage.Multiplayer;VRage.Input;VRage.UI;VRage.UI.Shared;VRage.Client;VRage.Game;Game2.Game;Game2.Simulation;Game2.Client;Avalonia.Base;Avalonia.Controls" />
     <Reference Include="@(GameReference)">
       <HintPath>$(Game2Dir)/%(Identity).dll</HintPath>
       <Private>false</Private>

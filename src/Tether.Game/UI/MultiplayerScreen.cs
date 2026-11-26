@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Tether contributors. Game-linking exception: see LICENSE-EXCEPTION.md.
 
 using System;
+using System.Reflection;
 using Tether.Diagnostics;
 using System.Collections.Generic;
 using Avalonia;
@@ -49,6 +50,17 @@ internal sealed class MultiplayerScreen : ScreenView
         Build();
     }
 
+    /// <summary>
+    /// The build's version and commit, e.g. "0.1.0 (66b648e)", so players can check they run the same build.
+    /// </summary>
+    private static string VersionText()
+    {
+        var info = typeof(MultiplayerScreen).Assembly
+            .GetCustomAttribute<System.Reflection.AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "?";
+        var plus = info.IndexOf('+');
+        return plus < 0 ? info : $"{info[..plus]} ({info.Substring(plus + 1, Math.Min(7, info.Length - plus - 1))})";
+    }
+
     /// <summary>Opens the panel on top of whatever is showing.</summary>
     public static void Open()
     {
@@ -80,7 +92,7 @@ internal sealed class MultiplayerScreen : ScreenView
         var title = Text(26, Brushes.White);
         title.Text = "Multiplayer";
         var subtitle = Text(13, Dim);
-        subtitle.Text = "Tether · unofficial, open source";
+        subtitle.Text = $"Tether {VersionText()} · unofficial, open source";
 
         var close = new Button { Content = "Close", HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top };
         close.Click += (_, _) => Dispose();

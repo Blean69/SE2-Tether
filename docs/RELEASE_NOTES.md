@@ -4,7 +4,15 @@ together.
 Space Engineers 2 already contains multiplayer that Keen has built but hidden. Tether switches it on and
 adds the controls to use it.
 
-### What's new in alpha.3
+### What's new in alpha.4
+
+- **Joining players crashed near planet vegetation.** Creating a planet's flora sector failed on the joining
+  side while storing two optional destruction settings, and the half-built sector then crashed the game. The
+  sector is now created without those settings.
+- **The Multiplayer panel shows the build** under its title, for example `Tether 0.1.0 (1a2b3c4)`. Both players
+  should see the same one. In the last test one player was still on alpha.2 without knowing it.
+
+### Also in this build (since alpha.2)
 
 The second test got a joining player into the host's world. These fixes target the crashes it found, all in the
 game's own, unfinished multiplayer code:
@@ -20,7 +28,7 @@ game's own, unfinished multiplayer code:
 - Loading another world no longer briefly reuses the previous world's visibility setting.
 
 alpha.2 made joining possible: the host's world is sent in messages larger than Steam allows in one piece, so
-Tether splits them up and puts them back together. **Both players need alpha.3.**
+Tether splits them up and puts them back together. **Both players need alpha.4.**
 
 ### What it does
 
@@ -38,8 +46,8 @@ Tether sends no telemetry and writes only to its own folders. It never modifies 
 
 Both players need Space Engineers 2 **4.0.0.3169** (the current Steam build) and this same kit.
 
-- **Windows:** download the zip below and unzip it. Quit the game, then double-click
-  `Install Tether.cmd`. It replaces an earlier Tether install. Paste the launch option into Steam (Space
+- **Windows:** download the zip below and unzip it. **Quit the game first**, then double-click
+  `Install Tether.cmd`. The installer stops with a message if the game is still running. It replaces an earlier Tether install. Paste the launch option into Steam (Space
   Engineers 2 > Properties > General > Launch Options); the installer copies it to your clipboard. If you
   already set it for an earlier version, it stays the same.
 - **Linux with Proton:** run `./install.sh` from the unzipped folder, and set the launch option it

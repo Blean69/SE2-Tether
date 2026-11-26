@@ -2,6 +2,7 @@
 // Copyright (C) 2026 Tether contributors. Game-linking exception: see LICENSE-EXCEPTION.md.
 
 using System;
+using System.Reflection;
 using System.Threading;
 using HarmonyLib;
 using Keen.VRage.Multiplayer.Replications.FailureStrategies;
@@ -115,6 +116,40 @@ internal static class MultiplayerFixes
 
         Report(ref s_remoteFaults, $"Network: the other player's game failed to carry out an action ({__result.Message}); cancelled it here instead of crashing");
         __result = (Exception)Activator.CreateInstance(s_skipType!, nonPublic: true)!;
+    }
+
+    // ----- Planet flora -------------------------------------------------------------------------------------
+
+    private const string FloraPhysics = "Keen.VRage.Voxels.Components.Flora.PlanetFloraSectorPhysicsComponent";
+    private static int s_flora;
+
+    /// <summary>
+    /// A joining player's game crashed while creating a planet flora sector it received:
+    /// <c>PlanetFloraSectorPhysicsComponent.Init</c> allocates its collider and initialises the base physics, then
+    /// stores two optional destruction settings with <c>Data.Set</c>, which throws a
+    /// <see cref="NullReferenceException"/> on the joining side. The half-built entity then crashed the game when its
+    /// queued changes were replayed. Tether lets the sector finish without those optional settings.
+    /// </summary>
+    public static void InstallFloraPhysics(Harmony harmony)
+    {
+        var physics = AccessTools.TypeByName(FloraPhysics) ?? throw new TypeLoadException(FloraPhysics);
+        var init = Array.Find(
+            physics.GetMethods(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly),
+            m => m.Name == "Init" && m.GetParameters() is [{ ParameterType.Name: "PlanetFloraSectorPhysicsComponentObjectBuilder" }])
+            ?? throw new MissingMethodException(FloraPhysics, "Init");
+        harmony.Patch(init, finalizer: new HarmonyMethod(typeof(MultiplayerFixes), nameof(FloraInitFinalizer)));
+    }
+
+    public static Exception? FloraInitFinalizer(Exception? __exception)
+    {
+        if (__exception is not NullReferenceException
+            || __exception.StackTrace?.Contains("DEntityContext.Set", StringComparison.Ordinal) != true)
+        {
+            return __exception;
+        }
+
+        Report(ref s_flora, "Planet flora: this game couldn't store optional destruction settings for a flora sector; created it without them instead of crashing");
+        return null;
     }
 
     // ----------------------------------------------------------------------------------------------------------

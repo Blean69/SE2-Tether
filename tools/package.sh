@@ -11,6 +11,7 @@
 # (file times are pinned to the commit time, order and permissions are normalised). CI runs exactly this.
 #
 # Usage: tools/package.sh [OUTPUT_DIR]      (default: artifacts/)
+#        TETHER_VERSION=0.1.0-test1 tools/package.sh   names the zip after a release instead of the commit
 
 set -euo pipefail
 
@@ -22,7 +23,7 @@ out="$(cd "$out" && pwd)"
 cd "$repo"
 prefix="$(sed -n 's:.*<VersionPrefix>\(.*\)</VersionPrefix>.*:\1:p' Directory.Build.props)"
 commit="$(git rev-parse --short=10 HEAD)"
-version="${prefix}-dev.${commit}"
+version="${TETHER_VERSION:-${prefix}-dev.${commit}}"
 if [[ -n "$(git status --porcelain --untracked-files=no)" ]]; then
     version="${version}.dirty"
     echo "warning: uncommitted changes; this package won't match a CI build of $commit" >&2
@@ -60,13 +61,15 @@ cat > "$stage/nettest.sh" <<'EOF'
 command -v dotnet >/dev/null 2>&1 || { echo "tether-nettest needs the .NET runtime 9 or newer: https://dotnet.microsoft.com/download/dotnet" >&2; exit 1; }
 exec dotnet "$(dirname "$0")/nettest/tether-nettest.dll" "$@"
 EOF
+printf '@echo off\r\nrem Installs Tether for Space Engineers 2. Double-click to run; it only runs install.ps1 next to this file.\r\npowershell -NoProfile -ExecutionPolicy Bypass -File "%%~dp0install.ps1"\r\necho.\r\npause\r\n' > "$stage/Install Tether.cmd"
+printf '@echo off\r\nrem Removes Tether. Double-click to run; it only runs install.ps1 -Uninstall next to this file.\r\npowershell -NoProfile -ExecutionPolicy Bypass -File "%%~dp0install.ps1" -Uninstall\r\necho.\r\npause\r\n' > "$stage/Uninstall Tether.cmd"
 printf '@echo off\r\nrem Runs tether-nettest. Needs the .NET runtime 9 or newer, which Space Engineers 2 already installs.\r\nwhere dotnet >nul 2>nul || (echo tether-nettest needs the .NET runtime 9 or newer: https://dotnet.microsoft.com/download/dotnet & exit /b 1)\r\ndotnet "%%~dp0nettest\\tether-nettest.dll" %%*\r\n' > "$stage/nettest.cmd"
 
 # Normalise permissions, then checksum everything.
 find "$stage" -type d -exec chmod 755 {} +
 find "$stage" -type f -exec chmod 644 {} +
 chmod 755 "$stage/install.sh" "$stage/nettest.sh"
-(cd "$stage" && find . -type f | LC_ALL=C sort | sed 's|^\./||' | xargs sha256sum > "$work/SHA256SUMS")
+(cd "$stage" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sed 's|  \./|  |' > "$work/SHA256SUMS")
 mv "$work/SHA256SUMS" "$stage/SHA256SUMS"
 chmod 644 "$stage/SHA256SUMS"
 

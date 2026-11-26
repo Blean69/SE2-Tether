@@ -1,0 +1,61 @@
+name: Release
+
+# Push a tag like v0.1.0-test1 to publish a pre-release with the test kit zip.
+# The zip is built exactly as in CI (tools/package.sh), so anyone can rebuild it byte-for-byte.
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+
+jobs:
+  release:
+    name: Build and publish ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # create the release
+      id-token: write      # provenance attestation
+      attestations: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          dotnet-version: 9.0.x
+
+      - name: Test
+        run: dotnet test tests/Tether.Core.Tests -c Release
+
+      - name: Package
+        shell: bash
+        run: |
+          set -euo pipefail
+          TETHER_VERSION="${GITHUB_REF_NAME#v}" tools/package.sh out
+          ls -l out
+
+      # Attestations need a public repository (or GitHub Enterprise); skipped while the repo is private.
+      - name: Attest build provenance
+        if: ${{ !github.event.repository.private }}
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: out/*.zip
+
+      - name: Publish pre-release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh release create "$GITHUB_REF_NAME" out/*.zip out/*.zip.sha256 \
+            --repo "$GITHUB_REPOSITORY" \
+            --verify-tag \
+            --prerelease \
+            --title "Tether ${GITHUB_REF_NAME} (test build)" \
+            --notes-file docs/RELEASE_NOTES.md

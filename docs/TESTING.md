@@ -11,13 +11,32 @@ everything else depends on:
 
 It changes nothing in your game or saves. To remove it, delete the launch option and the install folder.
 
+## Quick start (Windows)
+
+1. **Unzip** this folder anywhere, for example your Desktop.
+2. **Quit Space Engineers 2** if it's running, then double-click **`Install Tether.cmd`**.
+   - Windows may warn that the file came from the internet. Choose "More info" > "Run anyway".
+   - The installer is a short, readable script (`install.ps1`). It copies four DLLs to
+     `%LOCALAPPDATA%\Tether` and changes nothing else.
+3. In Steam, right-click Space Engineers 2 > Properties > General > **Launch Options**, and press
+   **Ctrl+V**. The installer already copied the right text to your clipboard.
+4. **Start the game** and load a world. Nothing in the game looks different; that's expected.
+5. **Quit**, then send the tester who gave you this kit the file `%APPDATA%\SpaceEngineers2\Tether\tether.log`.
+   Type that path into Explorer's address bar to find it. It contains your Windows user name in a few
+   paths, so look it over first.
+
+To remove Tether, double-click **`Uninstall Tether.cmd`** and clear the launch options in Steam.
+
+Want to try a network test with the person who sent you this? See Test B below.
+
 ## What's in the zip
 
 | Path | What |
 |---|---|
 | `plugin/` | Tether.dll (entry point), Tether.Runtime.dll, Tether.Core.dll, LiteNetLib.dll |
 | `nettest/`, `nettest.cmd`, `nettest.sh` | tether-nettest, a command-line network tester |
-| `install.ps1`, `install.sh` | Installers for Windows and Linux/Proton. They copy files and print the launch option. |
+| `Install Tether.cmd`, `Uninstall Tether.cmd` | Double-click helpers for Windows. They run `install.ps1`. |
+| `install.ps1`, `install.sh` | Installers for Windows and Linux/Proton. They copy files and show the launch option. |
 | `SHA256SUMS` | Checksums of every file |
 | `LICENSE`, `LICENSE-EXCEPTION.md` | GPL-3.0-or-later, plus the game-linking exception |
 

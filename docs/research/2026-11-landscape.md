@@ -100,7 +100,7 @@ public sources, Keen's own patch notes, and public open-source plugins.
 - **Features [C]:** host, join by code or Steam invite, headless "DsProto" dedicated server, and
   client-side lag hiding.
 - **Known limitation [C]:** mined voxels are not synced to joiners ("engine limitation").
-- **Note:** its name, "SE2MP", is almost identical to this repo's name (see the plan's open questions).
+- **Note:** its name, "SE2MP", was almost identical to this project's original working name, which is why we renamed to Tether.
 
 ## 4. Keen's terms (EULA, updated 2025-06-24, 2.spaceengineersgame.com/eula)
 

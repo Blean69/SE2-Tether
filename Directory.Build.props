@@ -1,0 +1,48 @@
+<Project>
+  <!--
+    Shared build settings for every Tether project.
+
+    Pulsar (the community plugin loader) compiles PluginHub plugins from source with its own Roslyn
+    build, not MSBuild. Keep the source tree compatible with that:
+      - no ImplicitUsings (every file declares its usings)
+      - no source generators
+      - C# language version pinned conservatively
+  -->
+
+  <!-- Local developer overrides (untracked). See Directory.Build.props.user.example. -->
+  <Import Project="$(MSBuildThisFileDirectory)Directory.Build.props.user"
+          Condition="Exists('$(MSBuildThisFileDirectory)Directory.Build.props.user')" />
+
+  <PropertyGroup>
+    <!-- Space Engineers 2 runs on .NET 9. Pulsar's launcher runs it on .NET 10, which loads net9.0 fine. -->
+    <TetherTargetFramework>net9.0</TetherTargetFramework>
+    <LangVersion>12.0</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Missing XML docs on every member would be noise; public API docs are reviewed by hand. -->
+    <NoWarn>$(NoWarn);CS1591;CS1573</NoWarn>
+
+    <VersionPrefix>0.1.0</VersionPrefix>
+    <Authors>Tether contributors</Authors>
+    <Product>Tether</Product>
+    <Copyright>Copyright (C) 2026 Tether contributors</Copyright>
+    <PackageLicenseExpression>GPL-3.0-or-later</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/Blean69/SE2-MP</RepositoryUrl>
+
+    <!-- Reproducible builds: anyone with the same inputs gets byte-identical outputs. -->
+    <Deterministic>true</Deterministic>
+    <DebugType>embedded</DebugType>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <PathMap>$(MSBuildThisFileDirectory)=/_/</PathMap>
+
+    <!-- Pin dependency versions; CI restores in locked mode. -->
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true' or '$(CI)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+    <RestoreLockedMode>true</RestoreLockedMode>
+  </PropertyGroup>
+</Project>

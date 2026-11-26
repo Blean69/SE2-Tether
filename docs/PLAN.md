@@ -1,6 +1,8 @@
-# SE2-MP design plan
+# Tether design plan
 
-**Status:** draft v0.1 (2026-11-26). This is a planning document; there is no code yet.
+**Status:** v0.2 (2026-11-26). The project is named **Tether**, licensed GPL-3.0-or-later with a
+game-linking exception, and v1 is scoped to small co-op sessions (§1). Implementation of the
+game-independent core has started.
 **Evidence:** [`docs/research/2026-11-landscape.md`](research/2026-11-landscape.md).
 **Markers:** **[DECIDE]** is a decision for the maintainer. **[P0]** is something to verify on a machine
 with the game installed (see the Phase 0 checklist in §14).
@@ -32,6 +34,30 @@ with the game installed (see the Phase 0 checklist in §14).
 - Redistributing any Keen file: DLLs, stubs, runtime, or the dedicated-server payload.
 - Anti-cheat beyond server authority and input validation.
 - Compatibility with other multiplayer mods. We will detect them and refuse to run alongside them.
+
+### v1 scope (decided 2026-11-26)
+
+- **Small co-op: up to 4 players**, the host included. This is a protocol default, not a hard limit.
+- **Listen server only.** One player hosts from inside the game, and their game is the authority. In
+  networking terms this is a star: every client connects to the host. No dedicated servers in v1.
+- **"Peer-to-peer" means the connections, not the authority.**
+  - Players connect directly to each other through Steam's P2P networking, relayed through Valve's
+    network, so there is no port forwarding and no server to rent.
+  - There is no full mesh where each player simulates their own objects. Keen's replication is
+    server-authoritative, and full mesh would mean desync and cheating problems with Havok physics.
+- **Transports:**
+  - **Steam P2P** is the default for playing with friends.
+  - **Direct UDP (LiteNetLib)** covers LAN play and development, and lets you run two game instances
+    on one PC.
+- **Out of scope for v1:**
+  - dedicated or headless servers;
+  - a public server browser;
+  - voice chat;
+  - remote admin;
+  - more than about 8 players.
+
+The design below still keeps dedicated servers possible later. Nothing in the protocol or session
+layer assumes the host is also a player.
 
 ## 2. Where we fit
 
@@ -104,7 +130,7 @@ Each fact is detailed with sources in the research notes.
  │    Simulation (DCS + Havok, server side)  <->  Replication layer  <->  Transport slot        │
  │                                                                          ^                   │
  │ ......................................................................  | thin adapter ..... │
- │  SE2-MP plugin                                                           v                   │
+ │  Tether plugin                                                           v                   │
  │    Bootstrap ── build check ── Harmony patches (Engine adapter + Feature modules)            │
  │    Session: host/join, players, permissions, mod check, world transfer                       │
  │    Protocol: our control messages (versioned, hand-written, bounds-checked)                  │
@@ -150,9 +176,9 @@ Each fact is detailed with sources in the research notes.
 
 ### Code boundaries (enforced in CI)
 
-- **`SE2MP.Core`** has **no game references**: protocol, transport abstraction and backends, session
+- **`Tether.Core`** has **no game references**: protocol, transport abstraction and backends, session
   logic, config and serialization. It builds and tests anywhere, on Linux and Windows CI.
-- **`SE2MP.Plugin`** references game assemblies and Harmony. It holds the bootstrap, engine adapter,
+- **`Tether.Plugin`** references game assemblies and Harmony. It holds the bootstrap, engine adapter,
   feature modules and UI.
 - The Steam backend lives in `Plugin`, not `Core`. It needs the game's own `Steamworks.NET.dll`, which
   we must reference but never ship.
@@ -261,7 +287,7 @@ own folder and its own config/log directory.
 | Mode | What it is | Phase |
 |---|---|---|
 | Listen server | The host plays and the host's game is the server. Steam or direct. | 1–2 |
-| Headless dedicated (Windows) | The game runs headless with rendering off: `-se2mp:server <config>`. | 4 |
+| Headless dedicated (Windows) | The game runs headless with rendering off: `-tether:server <config>`. | 4 |
 | Headless dedicated (Linux) | The same, under Wine/Proton, or natively via Pulsar + LinuxCompat, plus a Docker recipe. | 4 |
 
 - **Game files on the server:** the operator installs the game with **their own Steam account**
@@ -304,7 +330,7 @@ The **same managed DLL** runs everywhere. "Building for Linux" therefore means:
    (`~/.steam/steam/steamapps/common/SpaceEngineers2/Game2`). The path is configurable.
 2. **Proton players:**
    - `install.sh` locates the library and the Proton prefix.
-   - The launch option uses a Windows-style path, for example `-plugins:Z:\home\<you>\...\SE2MP.dll`
+   - The launch option uses a Windows-style path, for example `-plugins:Z:\home\<you>\...\Tether.dll`
      [P0: confirm the path form].
 3. **Native Linux players:** Pulsar + LinuxCompat. Our code avoids Windows P/Invoke and Windows-only
    APIs; this is enforced by an analyzer or CI check.
@@ -321,8 +347,8 @@ The **same managed DLL** runs everywhere. "Building for Linux" therefore means:
     paths) and overridable in an untracked `Directory.Build.props.user`.
   - References use `Private=false`, so game DLLs are never copied to output.
 - **CI without the game:**
-  - Public CI builds and tests `SE2MP.Core` fully.
-  - `SE2MP.Plugin` needs game DLLs, which CI can't legally have. Options **[DECIDE later]**:
+  - Public CI builds and tests `Tether.Core` fully.
+  - `Tether.Plugin` needs game DLLs, which CI can't legally have. Options **[DECIDE later]**:
     - a self-hosted runner;
     - reference stubs, but only with Keen's written permission (EULA §3);
     - relying on PluginHub plus local builds.
@@ -359,17 +385,17 @@ Keen is actively building multiplayer, so the internals we touch **will** move. 
 ## 13. Proposed repository layout
 
 ```
-SE2-MP/
+Tether/
 ├─ docs/                     PLAN.md, research/, adr/ (decision records), engine-map.md (Phase 0)
 ├─ src/
-│  ├─ SE2MP.Core/            game-independent: Protocol/, Transport/ (abstraction, LiteNetLib, loopback),
+│  ├─ Tether.Core/            game-independent: Protocol/, Transport/ (abstraction, LiteNetLib, loopback),
 │  │                         Session/, Config/, Serialization/
-│  └─ SE2MP.Plugin/          IPlugin bootstrap, Engine/ (adapter), Features/, Steam/, UI/, GlobalUsings.cs
+│  └─ Tether.Plugin/          IPlugin bootstrap, Engine/ (adapter), Features/, Steam/, UI/, GlobalUsings.cs
 ├─ tests/
-│  ├─ SE2MP.Core.Tests/      unit, protocol round-trip, fuzz, loopback integration, simulated lag/loss
-│  └─ SE2MP.Plugin.Checks/   patch-target self-check (run on machines with the game)
+│  ├─ Tether.Core.Tests/      unit, protocol round-trip, fuzz, loopback integration, simulated lag/loss
+│  └─ Tether.Plugin.Checks/   patch-target self-check (run on machines with the game)
 ├─ tools/                    install.ps1, install.sh, verify scripts, Game2 path detection props
-├─ pluginhub/                PluginHub XML template (SourceDirectories: src/SE2MP.Core, src/SE2MP.Plugin)
+├─ pluginhub/                PluginHub XML template (SourceDirectories: src/Tether.Core, src/Tether.Plugin)
 ├─ .github/workflows/        ci.yml (ubuntu + windows), release.yml
 ├─ Directory.Build.props, global.json, LICENSE, README.md, CONTRIBUTING.md, SECURITY.md
 ```
@@ -381,16 +407,19 @@ workstation.
 
 | Phase | Scope | Done when |
 |---|---|---|
-| **Now** (no game needed) | Repo skeleton, CI on Linux and Windows, `SE2MP.Core` (transport abstraction, LiteNetLib and loopback backends, protocol and handshake, session state machine), tests and fuzzing, install scripts, CONTRIBUTING and SECURITY docs. | Two in-process "fake game" peers handshake, exchange channelled data under simulated 200 ms lag and 5% loss, and reject malformed input. |
+| **Now** (no game needed): **done 2026-11-26** | Repo skeleton, CI on Linux and Windows, `Tether.Core` (transport abstraction, LiteNetLib and loopback backends, protocol and handshake, session state machine), tests and fuzzing, install scripts, CONTRIBUTING and SECURITY docs, and a diagnostics-only plugin bootstrap. | Two in-process "fake game" peers handshake, exchange channelled data under simulated 200 ms lag and 5% loss, and reject malformed input. 71 tests cover this. |
 | **0: Discovery** (workstation) | The checklist below. Output: `docs/engine-map.md` in our own words. | We know Keen's transport seam, world-join path, and what replicates out of the box. Architecture A is confirmed or revised. |
 | **1: First contact** | Hello-world plugin, then the engine adapter over Direct/LiteNetLib between two game instances on one PC. | Two players on a LAN see each other walk, jetpack and place a block. |
 | **2: Steam** | Steam backend (relay P2P), lobbies, invites, join via friends, auth tickets. | A friend behind NAT joins via a Steam invite. |
 | **3: Gameplay parity** | Building, grinding, welding, piloting, connectors and subgrids, inventory, mining and voxels for late joiners, power and conveyors, chat, ownership and factions, respawn. Feature modules plus a test matrix. | A 4-player, 2-hour session plays without desync-breaking bugs. |
-| **4: Dedicated servers** | Headless mode (Windows, then Linux), config, remote admin, backups, encryption on the direct backend, a Docker recipe. | A public 8+ player Linux server runs for 24 hours. |
-| **5: Release** | Multiplayer UI polish, PluginHub submission, docs, reproducible release pipeline, opt-in self-hostable server list. | v1.0 on PluginHub and GitHub Releases. |
+| **4: v1 release** | Multiplayer UI polish, PluginHub submission, docs, reproducible release pipeline. | v1.0 on PluginHub and GitHub Releases. |
+| *Post-v1: Dedicated servers* | Headless mode (Windows, then Linux), config, remote admin, backups, encryption on the direct backend, a Docker recipe, an opt-in self-hostable server list. | A public 8+ player Linux server runs for 24 hours. |
 | **Ongoing** | Game-update response (§12), and tracking Keen's official co-op so we converge. | Each game patch is triaged within days. |
 
 ### Phase 0 checklist (for the workstation)
+
+Step-by-step instructions are in [`PHASE0.md`](PHASE0.md). The diagnostics-only plugin bootstrap
+answers items 1 and 2 and most of 4 automatically (`-tether:debug -tether:dump-api`).
 
 1. Record the game build and the contents of `Game2/SpaceEngineers2.runtimeconfig.json`: the framework
    version, and whether `System.StartupHookProvider.IsSupported` is set.
@@ -450,15 +479,16 @@ Not legal advice, just a reading of Keen's EULA (2025-06-24) and how we stay on 
 
 ## 17. Open decisions
 
-1. **[DECIDE] Project name.** "SE2-MP" is nearly identical to the closed **SE2MP (se2mp.com)**. Players
-   would confuse the two, and it could look like a fork or an impostor. Renaming early is cheap.
-2. **[DECIDE] License.** Both options are compatible with PluginHub and with the "open forever" goal.
-   - **GPL-3.0-or-later**: forks must stay open, which prevents a closed rebrand of our work. Add a
-     linking exception for the proprietary game assemblies we must load.
-   - **MIT**: maximum reuse and the norm in this ecosystem (Pulsar, the templates).
-3. **[DECIDE] Contact Keen?** Recommended, before Phase 0 decompiling and certainly before public
-   dedicated servers (§16).
-4. **[DECIDE] v1 scope:** a target player count (the proposal is 8–16), and whether voice chat and the
-   server list are in v1 (the proposal is no).
-5. **[DECIDE later]** How CI builds the plugin DLL (§11).
-6. **[Revisit after Phase 0]** Architecture A versus C, and Keen's transport seam.
+**Decided (2026-11-26):**
+
+- **Name: Tether.** It replaces "SE2-MP", which was too close to the closed SE2MP (se2mp.com). The
+  GitHub repository itself should be renamed to match.
+- **License:** GPL-3.0-or-later with a game-linking exception ([`LICENSE-EXCEPTION.md`](../LICENSE-EXCEPTION.md)).
+- **v1 scope:** a small co-op listen server over Steam P2P (§1).
+
+**Still open:**
+
+1. **[DECIDE] Contact Keen?** Recommended before Phase 0 decompiling (§16). This matters less for v1
+   now that dedicated servers ("private servers") are out of its scope.
+2. **[DECIDE later]** How CI builds the plugin DLL (§11).
+3. **[Revisit after Phase 0]** Architecture A versus C, and Keen's transport seam.

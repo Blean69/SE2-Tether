@@ -1,0 +1,19 @@
+<Project>
+  <!--
+    Locates the Space Engineers 2 "Game2" folder (the one containing SpaceEngineers2.exe) for builds that
+    reference game assemblies. Override with Game2Dir in Directory.Build.props.user or on the command line:
+      dotnet build -p:Game2Dir=/path/to/SpaceEngineers2/Game2
+    Game assemblies are referenced, never copied or redistributed.
+  -->
+  <PropertyGroup Condition="'$(Game2Dir)' == '' and $([MSBuild]::IsOSPlatform('Windows'))">
+    <_TetherSteamInstall>$(registry:HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 1133870@InstallLocation)</_TetherSteamInstall>
+    <_TetherSteamInstall Condition="'$(_TetherSteamInstall)' == ''">$(registry:HKEY_LOCAL_MACHINE\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\Steam App 1133870@InstallLocation)</_TetherSteamInstall>
+    <Game2Dir Condition="'$(_TetherSteamInstall)' != ''">$(_TetherSteamInstall)\Game2</Game2Dir>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Game2Dir)' == '' and '$(HOME)' != '' and !$([MSBuild]::IsOSPlatform('Windows'))">
+    <Game2Dir Condition="Exists('$(HOME)/.steam/steam/steamapps/common/SpaceEngineers2/Game2')">$(HOME)/.steam/steam/steamapps/common/SpaceEngineers2/Game2</Game2Dir>
+    <Game2Dir Condition="'$(Game2Dir)' == '' and Exists('$(HOME)/.local/share/Steam/steamapps/common/SpaceEngineers2/Game2')">$(HOME)/.local/share/Steam/steamapps/common/SpaceEngineers2/Game2</Game2Dir>
+    <Game2Dir Condition="'$(Game2Dir)' == '' and Exists('$(HOME)/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/common/SpaceEngineers2/Game2')">$(HOME)/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps/common/SpaceEngineers2/Game2</Game2Dir>
+  </PropertyGroup>
+</Project>

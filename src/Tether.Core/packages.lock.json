@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net9.0": {
+      "LiteNetLib": {
+        "type": "Direct",
+        "requested": "[2.1.5, )",
+        "resolved": "2.1.5",
+        "contentHash": "inIiisoxrbxLgTPeKDzkfdEVuQuITo/cCdZYrNs0iUNTlg1AnnTi2orYqHL5Dqz0yo5qeOX5zvywh0RIUi675g=="
+      }
+    }
+  }
+}

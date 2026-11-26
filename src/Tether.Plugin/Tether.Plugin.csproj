@@ -1,0 +1,52 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    The Space Engineers 2 plugin. It references the game's own assemblies from your local install
+    (see build/Game2.props), so it only builds on a machine with the game. CI builds and tests Tether.Core instead.
+
+    Output: Tether.dll plus its dependencies (Tether.Core.dll, LiteNetLib.dll). Load it with the game's launch option:
+      -plugins:"<install folder>\Tether.dll"
+  -->
+  <Import Project="..\..\build\Game2.props" />
+
+  <PropertyGroup>
+    <TargetFramework>$(TetherTargetFramework)</TargetFramework>
+    <AssemblyName>Tether</AssemblyName>
+    <RootNamespace>Tether.Plugin</RootNamespace>
+    <PlatformTarget>x64</PlatformTarget>
+    <!-- Plugin-style output: copies NuGet dependencies next to the DLL, excludes the shared framework. -->
+    <EnableDynamicLoading>true</EnableDynamicLoading>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Tether.Core\Tether.Core.csproj" />
+  </ItemGroup>
+
+  <!--
+    Game assemblies, referenced in place and never copied (Private=false). The list is deliberately small.
+    At compile time Tether needs only IPlugin and PluginHost (namespace Keen.VRage.Core.Plugins). Everything
+    else is reached through reflection until Phase 0 confirms the API. Add assemblies here as features need them.
+  -->
+  <ItemGroup>
+    <Reference Include="VRage.Core" Condition="Exists('$(Game2Dir)/VRage.Core.dll')">
+      <HintPath>$(Game2Dir)/VRage.Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="VRage.Library" Condition="Exists('$(Game2Dir)/VRage.Library.dll')">
+      <HintPath>$(Game2Dir)/VRage.Library.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="SpaceEngineers2" Condition="Exists('$(Game2Dir)/SpaceEngineers2.dll')">
+      <HintPath>$(Game2Dir)/SpaceEngineers2.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <Target Name="TetherRequireGame" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="'$(Game2Dir)' == ''"
+           Text="Space Engineers 2 was not found. Set Game2Dir (the folder containing SpaceEngineers2.exe) in Directory.Build.props.user or pass -p:Game2Dir=..." />
+    <Error Condition="'$(Game2Dir)' != '' and !Exists('$(Game2Dir)/SpaceEngineers2.dll')"
+           Text="SpaceEngineers2.dll not found in Game2Dir '$(Game2Dir)'." />
+    <Message Importance="high" Text="Tether: building against game assemblies in $(Game2Dir)" />
+  </Target>
+</Project>

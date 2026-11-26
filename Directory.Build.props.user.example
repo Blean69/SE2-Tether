@@ -1,0 +1,12 @@
+<Project>
+  <!--
+    Copy this file to Directory.Build.props.user (untracked) to override local paths.
+    Only needed when automatic detection doesn't find your game install.
+  -->
+  <PropertyGroup>
+    <!-- Folder that contains SpaceEngineers2.exe and the game's DLLs. -->
+    <!-- Windows example: C:\Program Files (x86)\Steam\steamapps\common\SpaceEngineers2\Game2 -->
+    <!-- Linux example:   /home/you/.steam/steam/steamapps/common/SpaceEngineers2/Game2 -->
+    <Game2Dir></Game2Dir>
+  </PropertyGroup>
+</Project>

@@ -1,0 +1,82 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+  POWERSHELL_TELEMETRY_OPTOUT: "1"
+
+jobs:
+  core:
+    name: Core build and tests (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          # The game runs on .NET 9, so the tests run on the .NET 9 runtime.
+          dotnet-version: 9.0.x
+
+      - name: Restore (locked)
+        run: dotnet restore tests/Tether.Core.Tests --locked-mode
+
+      - name: Build
+        run: dotnet build tests/Tether.Core.Tests -c Release --no-restore
+
+      - name: Test
+        run: dotnet test tests/Tether.Core.Tests -c Release --no-build --logger "console;verbosity=normal"
+
+  reproducible:
+    name: Reproducible build check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          dotnet-version: 9.0.x
+      - name: Build Tether.Core twice from clean and compare
+        shell: bash
+        run: |
+          set -euo pipefail
+          for i in 1 2; do
+            rm -rf src/Tether.Core/bin src/Tether.Core/obj
+            dotnet build src/Tether.Core -c Release -o "out/$i"
+          done
+          sha256sum out/1/Tether.Core.dll out/2/Tether.Core.dll
+          cmp out/1/Tether.Core.dll out/2/Tether.Core.dll
+
+  hygiene:
+    name: Scripts and repository hygiene
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: No binaries in git
+        shell: bash
+        run: |
+          if git ls-files | grep -Ei '\.(dll|exe|so|dylib|nupkg)$'; then
+            echo "Binaries must not be committed. Releases are built from source." >&2
+            exit 1
+          fi
+      - name: shellcheck
+        run: shellcheck tools/*.sh
+      - name: PowerShell syntax
+        shell: pwsh
+        run: |
+          foreach ($file in Get-ChildItem tools -Filter *.ps1) {
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile($file.FullName, [ref]$null, [ref]$errors)
+            if ($errors) { $errors; exit 1 }
+          }

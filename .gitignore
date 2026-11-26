@@ -1,0 +1,21 @@
+# Build output
+bin/
+obj/
+artifacts/
+TestResults/
+*.nupkg
+
+# IDEs
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+*.DotSettings.user
+
+# Local developer overrides
+Directory.Build.props.user
+
+# Local diagnostics produced by the plugin (contain game API names; keep them local)
+api-dumps/
+*.log

@@ -132,21 +132,23 @@ internal static class MenuButtons
         var before = menu.FirstOrDefault(b => string.Equals(TextOf(b)?.Trim(), "Settings", StringComparison.OrdinalIgnoreCase));
         var template = before ?? menu.Last();
         var templateText = TextOf(template);
-        var button = new Button
+        var button = CreateLike(template);
+        button.Tag = Marker;
+        button.Content = templateText is { Length: > 0 } && templateText == templateText.ToUpperInvariant() ? "MULTIPLAYER" : "Multiplayer";
+        if (template.Theme is not null)
         {
-            Tag = Marker,
-            Content = templateText is { Length: > 0 } && templateText == templateText.ToUpperInvariant() ? "MULTIPLAYER" : "Multiplayer",
-            Theme = template.Theme,
-            Width = template.Width,
-            MinWidth = template.MinWidth,
-            Height = template.Height,
-            MinHeight = template.MinHeight,
-            Margin = template.Margin,
-            Padding = template.Padding,
-            HorizontalAlignment = template.HorizontalAlignment,
-            HorizontalContentAlignment = template.HorizontalContentAlignment,
-            VerticalContentAlignment = template.VerticalContentAlignment,
-        };
+            button.Theme = template.Theme;
+        }
+
+        button.Width = template.Width;
+        button.MinWidth = template.MinWidth;
+        button.Height = template.Height;
+        button.MinHeight = template.MinHeight;
+        button.Margin = template.Margin;
+        button.Padding = template.Padding;
+        button.HorizontalAlignment = template.HorizontalAlignment;
+        button.HorizontalContentAlignment = template.HorizontalContentAlignment;
+        button.VerticalContentAlignment = template.VerticalContentAlignment;
         foreach (var cls in template.Classes.Where(c => !c.StartsWith(':')))
         {
             button.Classes.Add(cls);
@@ -156,8 +158,33 @@ internal static class MenuButtons
 
         var index = before is null ? panel.Children.Count : panel.Children.IndexOf(before);
         panel.Children.Insert(Math.Clamp(index, 0, panel.Children.Count), button);
-        GameModule.Log.Info($"UI: added a Multiplayer button to the {Where} ({panel.GetType().Name} with {menu.Count()} buttons).");
+        GameModule.Log.Info($"UI: added a Multiplayer button to the {Where} ({button.GetType().Name} in a {panel.GetType().Name} with {menu.Count()} buttons).");
         return true;
+    }
+
+    /// <summary>
+    /// A new button of the same control type as the game's own, so it picks up the same style. The game only styles
+    /// its own button types: a plain <see cref="Button"/> gets no template there, and draws nothing.
+    /// </summary>
+    private static Button CreateLike(Button template)
+    {
+        var type = template.GetType();
+        if (type != typeof(Button))
+        {
+            try
+            {
+                if (Activator.CreateInstance(type) is Button same)
+                {
+                    return same;
+                }
+            }
+            catch (Exception ex)
+            {
+                GameModule.Log.Debug($"UI: couldn't create a {type.Name} ({ex.Message}); using a plain button.");
+            }
+        }
+
+        return new Button();
     }
 
     private static List<Button> FindButtons(Control root) =>

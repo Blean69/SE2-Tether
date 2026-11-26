@@ -69,16 +69,22 @@ Both logs contain your Windows user name in some file paths, so look them over f
 | `install.ps1`, `install.sh` | Installers for Windows and Linux/Proton. They copy files and show the launch option. |
 | `SHA256SUMS` | Checksums of every file |
 | `LICENSE`, `LICENSE-EXCEPTION.md` | GPL-3.0-or-later, plus the game-linking exception |
+| `THIRD-PARTY-NOTICES.md` | The MIT licenses of LiteNetLib and Harmony |
 
 ## Verify the download (optional)
 
 `SHA256SUMS` lists the checksum of every file. On Linux, run `sha256sum -c SHA256SUMS`.
 
-Every file is built from the public source by `tools/package.sh`. Most of the kit needs only the
-repository to build, and CI rebuilds it to identical bytes. The multiplayer module (`Tether.Game.dll`)
-is compiled against the game's own DLLs, which can't be redistributed. Kits that include it are built on
-a machine with the game installed. Building the same commit against the same game version should give
-identical bytes.
+Release kits are built with `tools/package.sh` on a machine with the game installed. The multiplayer
+module, `Tether.Game.dll`, compiles against the game's own DLLs, which can't be redistributed or put in
+CI. When a release is published, GitHub Actions runs `tools/verify-release.sh` on it (the "Verify
+release" workflow):
+
+- every other file is rebuilt from the tagged source and must match byte for byte;
+- `0Harmony.dll` must be identical to the official Harmony package on nuget.org.
+
+Anyone with the same game version can run that script at the release's tag to check `Tether.Game.dll`
+as well.
 
 ## Settings
 

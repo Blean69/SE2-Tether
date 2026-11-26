@@ -1,36 +1,51 @@
-**Test build. This does not add multiplayer to the game yet.**
+**Early test build.** Hosting works. Whether joining a friend's world gets all the way in is what this
+build is here to find out.
 
-This is Tether's first tester kit: an open-source co-op multiplayer plugin for Space Engineers 2, at an
-early stage. This build checks the foundations on your machine:
+Space Engineers 2 already contains multiplayer that Keen has built but hidden. Tether switches it on and
+adds the controls to use it:
 
-- **The plugin loads in your game.** It's verified on Linux with Proton; native Windows is what we want
-  to confirm next.
-- **Tether's networking works from inside the game process.** The in-game network self-test lets
-  another Tether user connect to your game, or your game connect to theirs.
-- **Two machines can reach each other** with `tether-nettest`, without the game.
+- **Multiplayer panel:** press Ctrl+M in a world, or Esc > Multiplayer. It shows whether you're hosting,
+  your join code, and who can join.
+- **Who can join:** Hidden, Private (Steam invites only), Friends, or Public (anyone with the code).
+  Worlds start closed until you open them.
+- **Joining:** through Steam (right-click a friend > Join Game, or accept their invite), or with a join
+  code from the main menu's Multiplayer button.
+- **Notifications** in the game when multiplayer is ready, when players join, and when a connection fails.
 
-It makes no gameplay changes, sends no telemetry, and writes only to its own folders.
+Tether sends no telemetry and writes only to its own folders. It never modifies game files.
 
-### Install (Windows)
+### Install
 
-Download the zip below, unzip it, quit the game, and double-click `Install Tether.cmd`. Then paste the
-launch option into Steam; the installer copies it to your clipboard. Full steps and tests are in
-`README-TESTING.md` inside the zip. Linux/Proton users run `./install.sh` instead.
+Both players need Space Engineers 2 **4.0.0.3169** (the current Steam build) and this same kit.
+
+- **Windows:** download the zip below and unzip it. Quit the game, then double-click
+  `Install Tether.cmd`. Paste the launch option into Steam (Space Engineers 2 > Properties > General >
+  Launch Options); the installer copies it to your clipboard.
+- **Linux with Proton:** run `./install.sh` from the unzipped folder, and set the launch option it
+  prints, including its single quotes.
+
+`README-TESTING.md` in the zip covers hosting, joining, and which logs to send back.
 
 ### Verify what you downloaded
 
-- `SHA256SUMS` inside the zip lists every file's checksum.
-- The `.zip.sha256` file next to the zip is the zip's own checksum.
-- This release is built by GitHub Actions from the tagged commit. Rebuilding with `tools/package.sh` at
-  the same commit gives a byte-identical zip.
-- When the repository is public, `gh attestation verify <zip> --repo Blean69/SE2-Tether` proves which
-  workflow and commit built it.
+- `SHA256SUMS` inside the zip lists every file's checksum. The `.zip.sha256` file below is the zip's own.
+- This kit was built with `tools/package.sh` at this release's tag, on a machine with the game installed.
+  The multiplayer module (`Tether.Game.dll`) compiles against the game's own DLLs, which can't go into CI.
+- The **Verify release** workflow (Actions tab) rebuilds every other file from the tagged source and
+  checks it matches byte for byte. It also checks that `0Harmony.dll` is the official Harmony package
+  from nuget.org.
+- With the same game version installed, `tools/verify-release.sh <zip>` at this tag rebuilds and checks
+  `Tether.Game.dll` too.
 
 ### Known limitations
 
-- No gameplay sync yet. That's the next phase.
-- Internet tests need the host to forward UDP port 27027. Steam P2P, which needs no port forwarding, is
-  planned.
-- Test chat appears in `tether.log` and in `tether-nettest`, not in the game's chat.
+- **Joining is untested end to end.** The game's own multiplayer is unfinished, so expect rough edges.
+- **Join codes only work for Public worlds.** For friends, use Steam's Join Game or Invite to game.
+- **First native Windows run.** If the game reports an incorrect plugin path, reinstall to a simple
+  folder: run `powershell -ExecutionPolicy Bypass -File .\install.ps1 -Destination C:\Tether`, then
+  use the launch options `-plugins:C:\Tether\Tether.dll -tether:debug`.
+- **Settings aren't saved.** Who-can-join resets to Hidden for each world, unless you add
+  `-tether:visibility=friends` to the launch options.
 
 Unofficial; not affiliated with Keen Software House. GPL-3.0-or-later with a game-linking exception.
+Includes LiteNetLib and Harmony (MIT); see `THIRD-PARTY-NOTICES.md`.

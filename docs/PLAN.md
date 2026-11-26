@@ -397,7 +397,7 @@ Tether/
 │  └─ Tether.Plugin.Checks/   patch-target self-check (run on machines with the game)
 ├─ tools/                    install.ps1, install.sh, verify scripts, Game2 path detection props
 ├─ pluginhub/                PluginHub XML template (SourceDirectories: src/Tether.Core, src/Tether.Plugin)
-├─ .github/workflows/        ci.yml (ubuntu + windows), release.yml
+├─ .github/workflows/        ci.yml (ubuntu + windows), verify-release.yml
 ├─ Directory.Build.props, global.json, LICENSE, README.md, CONTRIBUTING.md, SECURITY.md
 ```
 

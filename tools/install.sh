@@ -105,7 +105,7 @@ FROM="${FROM:-$script_dir}"
 
 mkdir -p -- "$dest"
 cp -f -- "$FROM"/*.dll "$dest/"
-for notice in LICENSE LICENSE-EXCEPTION.md; do
+for notice in LICENSE LICENSE-EXCEPTION.md THIRD-PARTY-NOTICES.md; do
     for dir in "$FROM" "$script_dir" "$script_dir/.."; do
         if [[ -f "$dir/$notice" ]]; then
             cp -f -- "$dir/$notice" "$dest/"

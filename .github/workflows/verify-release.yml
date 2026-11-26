@@ -1,0 +1,59 @@
+name: Verify release
+
+# Release kits are built with tools/package.sh on a machine with Space Engineers 2 installed: the in-game
+# multiplayer layer (Tether.Game.dll) compiles against the game's own DLLs, which can't be redistributed or
+# put in CI. When a release is published, this checks its kit from public sources with tools/verify-release.sh:
+# every other file is rebuilt from the tagged commit and must match byte for byte, and 0Harmony.dll must match
+# the official package on nuget.org.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to verify, e.g. v0.1.0-alpha.1
+        required: true
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+  DOTNET_NOLOGO: "1"
+  TAG: ${{ github.event.release.tag_name || inputs.tag }}
+
+jobs:
+  verify:
+    name: Verify ${{ github.event.release.tag_name || inputs.tag }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+          dotnet-version: 9.0.x
+
+      - name: Download the published kit
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --pattern 'tether-*.zip*' --dir "$RUNNER_TEMP/published"
+          ls -l "$RUNNER_TEMP/published"
+
+      - name: Rebuild from source and compare
+        shell: bash
+        run: |
+          shopt -s nullglob
+          zips=("$RUNNER_TEMP"/published/tether-*.zip)
+          if [[ ${#zips[@]} -eq 0 ]]; then
+            echo "No tether-*.zip in release $TAG." >&2
+            exit 1
+          fi
+          for zip in "${zips[@]}"; do
+            { echo '```'; tools/verify-release.sh "$zip"; echo '```'; } | tee -a "$GITHUB_STEP_SUMMARY"
+          done

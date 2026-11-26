@@ -68,7 +68,7 @@ if find "$stage" \( -name 'VRage*.dll' -o -name 'Game2*.dll' -o -name 'SpaceEngi
     exit 1
 fi
 
-cp tools/install.sh tools/install.ps1 LICENSE LICENSE-EXCEPTION.md "$stage/"
+cp tools/install.sh tools/install.ps1 LICENSE LICENSE-EXCEPTION.md THIRD-PARTY-NOTICES.md "$stage/"
 cp docs/TESTING.md "$stage/README-TESTING.md"
 
 cat > "$stage/nettest.sh" <<'EOF'

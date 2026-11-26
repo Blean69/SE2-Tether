@@ -62,7 +62,7 @@ if (-not (Test-Path -LiteralPath ([IO.Path]::Combine($From, 'Tether.dll')))) {
 
 New-Item -ItemType Directory -Force -Path $Destination | Out-Null
 Get-ChildItem -LiteralPath $From -Filter '*.dll' | Copy-Item -Destination $Destination -Force
-foreach ($notice in 'LICENSE', 'LICENSE-EXCEPTION.md') {
+foreach ($notice in 'LICENSE', 'LICENSE-EXCEPTION.md', 'THIRD-PARTY-NOTICES.md') {
     foreach ($dir in $From, $PSScriptRoot, ([IO.Path]::Combine($PSScriptRoot, '..'))) {
         $candidate = [IO.Path]::Combine($dir, $notice)
         if (Test-Path -LiteralPath $candidate) {

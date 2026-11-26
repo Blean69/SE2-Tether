@@ -87,7 +87,7 @@ logs="$drive_c/users/steamuser/AppData/Roaming/SpaceEngineers2/Tether"
 if [[ "$UNINSTALL" -eq 1 ]]; then
     rm -rf -- "$dest"
     echo "Removed $dest"
-    echo "Also remove '-plugins:C:\\Tether\\Tether.dll' from the game's launch options in Steam."
+    echo "Also remove '-plugins:C:\\Tether\\Tether.dll' (and any -tether: options) from the game's launch options in Steam."
     echo "Tether's logs and settings are left in $logs (delete them if you like)."
     exit 0
 fi
@@ -119,6 +119,9 @@ echo "Installed Tether to $dest:"
 echo
 echo "Now set the launch option in Steam: Space Engineers 2 > Properties > General > Launch Options:"
 echo
-echo "    -plugins:C:\\Tether\\Tether.dll"
+echo "    '-plugins:C:\\Tether\\Tether.dll'"
+echo
+echo "Keep the single quotes. Steam on Linux passes launch options through a shell, which would otherwise"
+echo "drop the backslashes, and the game would report an incorrect plugin path."
 echo
 echo "Tether's log will be at: $logs/tether.log"

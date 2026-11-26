@@ -53,7 +53,9 @@ Each installer prints the launch option to paste into Steam (Space Engineers 2 >
 Launch Options):
 
 - **Windows:** `-plugins:"C:\Users\<you>\AppData\Local\Tether\Tether.dll"`
-- **Proton:** `-plugins:C:\Tether\Tether.dll`
+- **Proton:** `'-plugins:C:\Tether\Tether.dll'`, including the single quotes. Steam on Linux passes launch
+  options through a shell, which drops unquoted backslashes. The game would then report an incorrect
+  plugin path.
 
 ## 2. Test A: the plugin loads
 

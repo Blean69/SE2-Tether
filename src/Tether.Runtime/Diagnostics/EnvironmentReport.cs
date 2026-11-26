@@ -33,6 +33,11 @@ internal static class EnvironmentReport
         {
             log.Info($"Runtime: {RuntimeInformation.FrameworkDescription}, {RuntimeInformation.ProcessArchitecture}, OS: {RuntimeInformation.OSDescription}");
             log.Info($"Platform: {DescribePlatform()}");
+            var compatData = Environment.GetEnvironmentVariable("STEAM_COMPAT_DATA_PATH");
+            if (compatData is not null)
+            {
+                log.Info($"Proton compat data folder: {compatData}");
+            }
         });
 
         Safe(log, "game", () =>
@@ -81,6 +86,10 @@ internal static class EnvironmentReport
         });
     }
 
+    /// <summary>
+    /// A short platform name such as "Windows build under Wine/Proton". It never contains paths or user
+    /// names, because the network self-test shares it with other players.
+    /// </summary>
     public static string DescribePlatform()
     {
         if (OperatingSystem.IsLinux())
@@ -106,7 +115,7 @@ internal static class EnvironmentReport
         var compatData = Environment.GetEnvironmentVariable("STEAM_COMPAT_DATA_PATH");
         if (wine || compatData is not null)
         {
-            return $"Windows build under Wine{(compatData is not null ? "/Proton (compat data: " + compatData + ")" : string.Empty)}";
+            return compatData is not null ? "Windows build under Wine/Proton" : "Windows build under Wine";
         }
 
         return "Windows";

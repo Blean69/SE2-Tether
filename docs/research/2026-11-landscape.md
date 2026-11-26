@@ -34,6 +34,41 @@ public sources, Keen's own patch notes, and public open-source plugins.
 | Linux | Not officially supported. ProtonDB rates it **Gold** (180 reports); Steam Deck "Playable". Keen fixed a Proton rendering bug in Oct 2026. | C |
 | Official modding | Data-only Mod SDK (Jun 2025): "Scripting and code APIs are not included yet." | C |
 
+## 1a. Confirmed on hardware (Phase 0, 2026-11-26)
+
+These were observed on a real machine: Ubuntu 26.04 laptop, Steam with GE-Proton11-1, Steam build
+26536832, game 4.0.0.3169. Tether's diagnostics plugin was loaded via `-plugins:`. Everything below
+comes from the game's own files and logs plus Tether's log. No game code was decompiled.
+
+- **Runtime:**
+  - `SpaceEngineers2.runtimeconfig.json` targets `net9.0` and needs Microsoft.NETCore.App and
+    Microsoft.WindowsDesktop.App 9.0.0.
+  - Proton installed .NET 9.0.22 into the prefix.
+  - The startup-hook switch isn't set, so that fallback loading route stays available.
+- **Plugin loading:**
+  - Loading via `-plugins:` works under Proton.
+  - The game logs "Plugin NOT loaded: <path>" and shows an "IncorrectPluginPath" message for a bad path.
+  - On Linux the launch option must be single-quoted, because Steam's shell drops unquoted backslashes.
+  - Tether's dependencies resolved from the plugin folder (`C:\Tether`).
+- **PluginHost (names via reflection):**
+  - Events: `OnBeforeProjectsLoaded(List<VRageProject>)`, `OnBeforeEngineInstantiated(EngineBuilder)`.
+  - Methods: `Add`, `Dispose`, `InvokeOnBeforeEngineInstantiated`, `InvokeOnBeforeProjectsLoaded`,
+    `PostEngineInit`, and `TryAddFromAssembly` (two overloads).
+  - Both events fired, in that order, about 0.2 s apart and before the engine was built.
+- **Steam:** the game ships **Steamworks.NET 2024.8.0.0**, already loaded when plugins start.
+- **Networking inside the game process:** a LiteNetLib UDP host started by the plugin worked under
+  Proton. A native-Linux `tether-nettest` on the same machine joined it, chatted both ways, and lost
+  0% of link probes.
+- **Keen's own API documentation:** the game ships XML doc files next to its assemblies
+  (`VRage.Core.xml`, `VRage.Multiplayer.xml` and others). These are Keen's published documentation of
+  the public API, and the first place to look when mapping the netcode for Phase 1.
+- **Assemblies present:** `VRage.Core`, `VRage.Library`, `VRage.Multiplayer`, `VRage.Steam`,
+  `Steamworks.NET`, and `VRage.Library.Generator` (the assembly that causes duplicate types in Pulsar
+  builds).
+- **Proton paths:**
+  - Game folder: `S:\common\SpaceEngineers2\Game2\`, a Wine drive mapped to the Steam library.
+  - Data folder: `C:\users\steamuser\AppData\Roaming\SpaceEngineers2`.
+
 ## 2. Plugin loading
 
 - **Built-in hook [C]:** launching with `-plugins:<dll>[;<dll>...]` loads any public class that implements

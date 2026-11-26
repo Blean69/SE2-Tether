@@ -330,8 +330,9 @@ The **same managed DLL** runs everywhere. "Building for Linux" therefore means:
    (`~/.steam/steam/steamapps/common/SpaceEngineers2/Game2`). The path is configurable.
 2. **Proton players:**
    - `install.sh` locates the library and the Proton prefix.
-   - The launch option uses a Windows-style path, for example `-plugins:Z:\home\<you>\...\Tether.dll`
-     [P0: confirm the path form].
+   - `install.sh` copies Tether into the prefix as `C:\Tether`. The launch option is
+     `'-plugins:C:\Tether\Tether.dll'`. The single quotes are required because Steam on Linux runs launch
+     options through a shell. Confirmed on hardware 2026-11-26.
 3. **Native Linux players:** Pulsar + LinuxCompat. Our code avoids Windows P/Invoke and Windows-only
    APIs; this is enforced by an analyzer or CI check.
 4. **Linux dedicated servers** (§8).

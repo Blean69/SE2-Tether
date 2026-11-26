@@ -36,13 +36,14 @@ From the unzipped kit (or `tools/` in the repo):
 | Platform | Command | Launch option it prints |
 |---|---|---|
 | Windows | `powershell -ExecutionPolicy Bypass -File install.ps1` | `-plugins:"%LOCALAPPDATA%\Tether\Tether.dll"`, expanded to the real path |
-| Linux (Proton) | `./install.sh` (run the game once under Proton first) | `-plugins:C:\Tether\Tether.dll` |
+| Linux (Proton) | `./install.sh` (run the game once under Proton first) | `'-plugins:C:\Tether\Tether.dll'`, keeping the single quotes (Steam's shell drops unquoted backslashes) |
 
 In Steam, open Space Engineers 2 > Properties > General > Launch Options and paste the printed option,
 then add the diagnostic flags:
 
 ```
--plugins:"...\Tether.dll" -tether:debug -tether:dump-api
+-plugins:"...\Tether.dll" -tether:debug -tether:dump-api            (Windows)
+'-plugins:C:\Tether\Tether.dll' -tether:debug -tether:dump-api      (Proton)
 ```
 
 To also run the in-game network self-test in the same session, add `-tether:host-test` and join from

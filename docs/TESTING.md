@@ -17,12 +17,42 @@ Both players need Space Engineers 2 on the same game version, and the same Tethe
 
 1. **Unzip** this folder anywhere, for example your Desktop.
 2. **Quit Space Engineers 2** if it's running, then double-click **`Install Tether.cmd`**.
-   - Windows may warn that the file came from the internet. Choose "More info" > "Run anyway".
+   - Windows may warn that the file came from the internet. Choose "More info" > "Run anyway", or "Run".
+   - If Windows says the file "was blocked because files of this type from the internet can be
+     dangerous", with no way to run it, Smart App Control is on. See
+     [Smart App Control](#smart-app-control-windows-11) below.
    - The installer is a short, readable script (`install.ps1`). It copies Tether's DLLs to
      `%LOCALAPPDATA%\Tether` and changes nothing else.
 3. In Steam, right-click Space Engineers 2 > Properties > General > **Launch Options**, and press
    **Ctrl+V**. The installer already copied the right text to your clipboard.
 4. **Start the game.** The main menu now has a **Multiplayer** button.
+
+### Smart App Control (Windows 11)
+
+Smart App Control is a Windows 11 security feature. When it's on, it does two things that affect Tether:
+
+- It blocks downloaded scripts, such as `Install Tether.cmd`, with no option to run them anyway.
+- It checks every DLL a program loads, and blocks unsigned ones that Microsoft's cloud service doesn't
+  recognise. Tether's DLLs aren't code-signed yet, so the game won't be allowed to load Tether, however
+  you install it.
+
+There's no way to allow just one program. To check the setting, open **Windows Security > App & browser
+control > Smart App Control settings**:
+
+| Setting | What to do |
+|---|---|
+| **Off** | Nothing. |
+| **Evaluation** | Nothing; evaluation mode blocks nothing. Windows may switch it to On later, and then Tether stops loading. |
+| **On** | Turn it **Off** on that page to use this build. |
+
+Before you turn it off:
+
+- **Turning it back on:** on Windows 11 25H2 with current updates, you can turn it back on later from the
+  same page. On older versions, turning it off is permanent unless you reset Windows.
+- **Other protections stay:** Microsoft Defender Antivirus and SmartScreen keep protecting the PC.
+
+Once it's off, run `Install Tether.cmd` again. The installer also warns if Smart App Control is on.
+Code-signed builds would avoid all this, but they aren't available yet.
 
 ### Host a world
 
@@ -192,3 +222,5 @@ setup: Windows, Proton (and which version), or native Linux.
 1. Remove the `-plugins:` and `-tether:` launch options in Steam.
 2. Double-click **`Uninstall Tether.cmd`** (Windows), or run `./install.sh --uninstall` (Linux), or just
    delete the install folder.
+3. If you turned Smart App Control off for Tether, you can turn it back on where your Windows version
+   allows it (see [Smart App Control](#smart-app-control-windows-11)).

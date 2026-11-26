@@ -39,6 +39,11 @@ Both players need Space Engineers 2 **4.0.0.3169** (the current Steam build) and
 
 ### Known limitations
 
+- **Windows 11 Smart App Control.** Tether isn't code-signed yet. If Smart App Control is on, Windows
+  blocks `Install Tether.cmd` with no option to run it, and it won't let the game load Tether either.
+  The only way around it is to turn Smart App Control off. Read
+  [what that means](https://github.com/Blean69/SE2-Tether/blob/HEAD/docs/TESTING.md#smart-app-control-windows-11)
+  before you do.
 - **Joining is untested end to end.** The game's own multiplayer is unfinished, so expect rough edges.
 - **Join codes only work for Public worlds.** For friends, use Steam's Join Game or Invite to game.
 - **First native Windows run.** If the game reports an incorrect plugin path, reinstall to a simple

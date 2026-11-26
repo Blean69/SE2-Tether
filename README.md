@@ -26,6 +26,11 @@ the same game version and the same Tether kit.
   your clipboard.
 - **Linux with Proton:** run `./install.sh` from the unzipped folder and set the launch option it prints.
 
+**Windows 11 Smart App Control:** Tether's DLLs aren't code-signed yet, so with Smart App Control on,
+Windows blocks the installer and won't let the game load Tether. If Windows blocks `Install Tether.cmd`
+with no option to run it, read
+[Smart App Control](docs/TESTING.md#smart-app-control-windows-11) first.
+
 `README-TESTING.md` in the zip covers hosting, joining, and what to send back. It's the same file as
 [`docs/TESTING.md`](docs/TESTING.md). To remove Tether, run `Uninstall Tether.cmd`
 (or `./install.sh --uninstall`) and clear the launch options.

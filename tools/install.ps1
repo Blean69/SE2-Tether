@@ -11,6 +11,9 @@
 
     In the test kit, double-click "Install Tether.cmd", which runs this script.
 
+    The script sticks to cmdlets (no .NET method calls), so it also runs where Windows restricts PowerShell
+    to Constrained Language Mode.
+
 .EXAMPLE
     powershell -ExecutionPolicy Bypass -File tools\install.ps1
 
@@ -23,14 +26,14 @@ param(
     [string]$From,
 
     # Where to install. Avoid folders that need administrator rights.
-    [string]$Destination = [IO.Path]::Combine($env:LOCALAPPDATA, 'Tether'),
+    [string]$Destination = (Join-Path $env:LOCALAPPDATA 'Tether'),
 
     [switch]$Uninstall
 )
 
 $ErrorActionPreference = 'Stop'
-$launchOption = "-plugins:`"$([IO.Path]::Combine($Destination, 'Tether.dll'))`""
-$logs = [IO.Path]::Combine($env:APPDATA, 'SpaceEngineers2', 'Tether')
+$launchOption = "-plugins:`"$(Join-Path $Destination 'Tether.dll')`""
+$logs = Join-Path $env:APPDATA 'SpaceEngineers2\Tether'
 
 # Windows locks DLLs the running game has loaded, so installing or removing over them would fail half-way.
 if (Get-Process -Name 'SpaceEngineers2' -ErrorAction SilentlyContinue) {
@@ -49,22 +52,22 @@ if ($Uninstall) {
 
 if (-not $From) {
     $candidates = @(
-        [IO.Path]::Combine($PSScriptRoot, 'plugin'),
-        [IO.Path]::Combine($PSScriptRoot, '..', 'src', 'Tether.Plugin', 'bin', 'Release', 'net9.0'),
+        (Join-Path $PSScriptRoot 'plugin'),
+        (Join-Path $PSScriptRoot '..\src\Tether.Plugin\bin\Release\net9.0'),
         $PSScriptRoot)
-    $From = $candidates | Where-Object { Test-Path -LiteralPath ([IO.Path]::Combine($_, 'Tether.dll')) } | Select-Object -First 1
+    $From = $candidates | Where-Object { Test-Path -LiteralPath (Join-Path $_ 'Tether.dll') } | Select-Object -First 1
     if (-not $From) { $From = $PSScriptRoot }
 }
 
-if (-not (Test-Path -LiteralPath ([IO.Path]::Combine($From, 'Tether.dll')))) {
+if (-not (Test-Path -LiteralPath (Join-Path $From 'Tether.dll'))) {
     throw "Tether.dll not found in '$From'. Build it first: dotnet build src\Tether.Plugin -c Release"
 }
 
 New-Item -ItemType Directory -Force -Path $Destination | Out-Null
 Get-ChildItem -LiteralPath $From -Filter '*.dll' | Copy-Item -Destination $Destination -Force
 foreach ($notice in 'LICENSE', 'LICENSE-EXCEPTION.md', 'THIRD-PARTY-NOTICES.md') {
-    foreach ($dir in $From, $PSScriptRoot, ([IO.Path]::Combine($PSScriptRoot, '..'))) {
-        $candidate = [IO.Path]::Combine($dir, $notice)
+    foreach ($dir in $From, $PSScriptRoot, (Join-Path $PSScriptRoot '..')) {
+        $candidate = Join-Path $dir $notice
         if (Test-Path -LiteralPath $candidate) {
             Copy-Item -LiteralPath $candidate -Destination $Destination -Force
             break
@@ -95,4 +98,16 @@ if ($copied) {
     Write-Host '(Already copied to your clipboard: just press Ctrl+V in that box.)'
     Write-Host ''
 }
-Write-Host "Then start the game. Tether's log will be at: $([IO.Path]::Combine($logs, 'tether.log'))"
+Write-Host "Then start the game. Tether's log will be at: $(Join-Path $logs 'tether.log')"
+
+# Smart App Control (Windows 11) blocks unsigned code that Microsoft's cloud service doesn't recognise, DLLs
+# included. Tether isn't code-signed yet, so while it is on (state 1), the game won't be allowed to load Tether.
+# State 2 is evaluation mode, which blocks nothing. Read only; the setting is never changed here.
+$sac = Get-ItemProperty -LiteralPath 'HKLM:\SYSTEM\CurrentControlSet\Control\CI\Policy' -Name 'VerifiedAndReputablePolicyState' -ErrorAction SilentlyContinue
+if ($sac -and $sac.VerifiedAndReputablePolicyState -eq 1) {
+    Write-Host ''
+    Write-Host 'WARNING: Smart App Control is on.' -ForegroundColor Yellow
+    Write-Host 'It will stop the game from loading Tether, because Tether is not code-signed yet.' -ForegroundColor Yellow
+    Write-Host 'To use Tether, it has to be turned off: Windows Security > App & browser control >' -ForegroundColor Yellow
+    Write-Host 'Smart App Control settings. Read "Smart App Control" in README-TESTING.md first.' -ForegroundColor Yellow
+}
